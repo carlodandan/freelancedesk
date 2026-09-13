@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-canvas: #FAF8F5;
+    --bg-surface: #FFFFFF;
+    --bg-surface-subtle: #F4F1EA;
+    --border-ledger: #E5E0D5;
+    --border-ledger-subtle: #ECE8DE;
+    --text-primary: #1C1917;
+    --text-secondary: #57534E;
+    --text-muted: #8C867A;
+    --accent: #854D0E;
+    --accent-hover: #713F12;
+  }
+
+  * {
+    border-color: var(--border-ledger);
+  }
+
+  body {
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    overflow: hidden;
+  }
+
+  /* Custom subtle ledger scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #D5CEBF;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #B8AF9E;
+  }
+}
+
+.ledger-canvas {
+  background-color: var(--bg-canvas);
+}
+
+.ledger-surface {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-ledger);
+}
+
+.ledger-surface-subtle {
+  background-color: var(--bg-surface-subtle);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
