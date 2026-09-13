@@ -117,20 +117,38 @@ describe("PDF Generation Service (pdf.ts)", () => {
 
   describe("Receipt PDF Generation (generateReceiptPdf)", () => {
     it("generates receipt PDF without crashing", () => {
-      const doc = generateReceiptPdf(mockPayment, mockSettings, undefined, 100000, false);
+      const doc = generateReceiptPdf(
+        mockPayment,
+        mockSettings,
+        undefined,
+        100000,
+        false,
+      );
       expect(doc).toBeDefined();
       expect(doc.getNumberOfPages()).toBeGreaterThanOrEqual(1);
     });
 
     it("does NOT contain the corrupted '±' symbol in the receipt PDF output", () => {
-      const doc = generateReceiptPdf(mockPayment, mockSettings, undefined, 100000, false);
+      const doc = generateReceiptPdf(
+        mockPayment,
+        mockSettings,
+        undefined,
+        100000,
+        false,
+      );
       const pdfOutput = doc.output();
       expect(pdfOutput.includes("±")).toBe(false);
       expect(pdfOutput.includes("PHP")).toBe(true);
     });
 
     it("renders receipt number and payment details", () => {
-      const doc = generateReceiptPdf(mockPayment, mockSettings, undefined, undefined, false);
+      const doc = generateReceiptPdf(
+        mockPayment,
+        mockSettings,
+        undefined,
+        undefined,
+        false,
+      );
       const pdfOutput = doc.output();
       expect(pdfOutput.includes("RCP-2026-001")).toBe(true);
       expect(pdfOutput.includes("UB-987654321")).toBe(true);

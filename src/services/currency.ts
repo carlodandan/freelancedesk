@@ -71,7 +71,8 @@ export function calculateCommissionBalance(
   paymentStatus: "unpaid" | "partially_paid" | "deposit_paid" | "fully_paid";
 } {
   const remainingBalanceCents = priceCents - totalPaidCents;
-  let paymentStatus: "unpaid" | "partially_paid" | "deposit_paid" | "fully_paid" = "unpaid";
+  let paymentStatus:
+    "unpaid" | "partially_paid" | "deposit_paid" | "fully_paid" = "unpaid";
 
   if (remainingBalanceCents <= 0) {
     paymentStatus = "fully_paid";
@@ -101,7 +102,9 @@ export function calculateInvoiceTotals(
   const cappedDiscount = Math.min(Math.max(0, discountCents), subtotalCents);
   const discountedSubtotal = subtotalCents - cappedDiscount;
   // tax_rate_bps is basis points (1200 bps = 12.00%)
-  const taxAmountCents = Math.round((discountedSubtotal * Math.max(0, taxRateBps)) / 10000);
+  const taxAmountCents = Math.round(
+    (discountedSubtotal * Math.max(0, taxRateBps)) / 10000,
+  );
   const totalCents = discountedSubtotal + taxAmountCents;
 
   return {
@@ -118,4 +121,3 @@ export function calculateNetProfit(
 ): number {
   return incomeCents - expenseCents;
 }
-

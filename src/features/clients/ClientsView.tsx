@@ -1,13 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  Users,
-  Plus,
-  Search,
-  Mail,
-  Phone,
-  Trash2,
-  Eye,
-} from "lucide-react";
+import { Users, Plus, Search, Mail, Phone, Trash2, Eye } from "lucide-react";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/Badge";
@@ -25,9 +17,7 @@ interface ClientsViewProps {
   onNavigateToCommissions?: (clientId: string) => void;
 }
 
-export const ClientsView: React.FC<ClientsViewProps> = ({
-  currencySymbol,
-}) => {
+export const ClientsView: React.FC<ClientsViewProps> = ({ currencySymbol }) => {
   const [clients, setClients] = useState<ClientItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -96,7 +86,9 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
   };
 
   const handleDeleteClient = async (id: string) => {
-    if (window.confirm("Are you sure you want to remove or archive this client?")) {
+    if (
+      window.confirm("Are you sure you want to remove or archive this client?")
+    ) {
       try {
         await tauriService.deleteClient(id);
         if (selectedClient?.id === id) setSelectedClient(null);
@@ -128,8 +120,9 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
   const filteredClients = clients.filter(
     (c) =>
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (c.company_name && c.company_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (c.email && c.email.toLowerCase().includes(searchQuery.toLowerCase()))
+      (c.company_name &&
+        c.company_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (c.email && c.email.toLowerCase().includes(searchQuery.toLowerCase())),
   );
 
   return (
@@ -157,7 +150,10 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
       {/* Search Bar */}
       <div className="flex items-center justify-between gap-4">
         <div className="relative w-80">
-          <Search size={14} className="absolute left-3 top-2.5 text-[#8C867A]" />
+          <Search
+            size={14}
+            className="absolute left-3 top-2.5 text-[#8C867A]"
+          />
           <input
             type="text"
             placeholder="Filter clients by name, company, email..."
@@ -167,7 +163,11 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
           />
         </div>
         <div className="text-xs text-[#78716C]">
-          Showing <span className="font-semibold text-[#1C1917]">{filteredClients.length}</span> clients
+          Showing{" "}
+          <span className="font-semibold text-[#1C1917]">
+            {filteredClients.length}
+          </span>{" "}
+          clients
         </div>
       </div>
 
@@ -195,21 +195,31 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                     className="hover:bg-[var(--bg-surface-subtle)] transition-colors cursor-pointer group"
                   >
                     <td className="px-5 py-3.5">
-                      <div className="font-semibold text-[var(--text-primary)]">{client.name}</div>
+                      <div className="font-semibold text-[var(--text-primary)]">
+                        {client.name}
+                      </div>
                       {client.company_name && (
-                        <div className="text-[11px] text-[var(--text-secondary)]">{client.company_name}</div>
+                        <div className="text-[11px] text-[var(--text-secondary)]">
+                          {client.company_name}
+                        </div>
                       )}
                     </td>
                     <td className="px-4 py-3.5 text-[var(--text-secondary)]">
                       {client.email && (
                         <div className="flex items-center gap-1.5">
-                          <Mail size={12} className="text-[var(--text-muted)]" />
+                          <Mail
+                            size={12}
+                            className="text-[var(--text-muted)]"
+                          />
                           <span>{client.email}</span>
                         </div>
                       )}
                       {client.phone && (
                         <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] mt-0.5">
-                          <Phone size={12} className="text-[var(--text-muted)]" />
+                          <Phone
+                            size={12}
+                            className="text-[var(--text-muted)]"
+                          />
                           <span>{client.phone}</span>
                         </div>
                       )}
@@ -229,15 +239,18 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                           client.status === "active"
                             ? "success"
                             : client.status === "archived"
-                            ? "neutral"
-                            : "warning"
+                              ? "neutral"
+                              : "warning"
                         }
                         size="sm"
                       >
                         {client.status}
                       </Badge>
                     </td>
-                    <td className="px-5 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
+                    <td
+                      className="px-5 py-3.5 text-right"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => setSelectedClient(client)}
@@ -375,7 +388,10 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                   Total Billed
                 </div>
                 <div className="text-base font-bold font-mono text-[#1C1917] mt-1 tabular-nums">
-                  {formatCents(selectedClient.total_billed_cents, currencySymbol)}
+                  {formatCents(
+                    selectedClient.total_billed_cents,
+                    currencySymbol,
+                  )}
                 </div>
               </div>
               <div className="p-3.5 rounded-lg bg-[#F0FDF4] border border-[#BBF7D0]">
@@ -391,7 +407,10 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                   Outstanding
                 </div>
                 <div className="text-base font-bold font-mono text-[#B45309] mt-1 tabular-nums">
-                  {formatCents(selectedClient.outstanding_cents, currencySymbol)}
+                  {formatCents(
+                    selectedClient.outstanding_cents,
+                    currencySymbol,
+                  )}
                 </div>
               </div>
             </div>

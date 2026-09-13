@@ -22,7 +22,8 @@ export function App() {
   const [activeTab, setActiveTab] = useState<NavigationTab>("dashboard");
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
-  const [dashboardSummary, setDashboardSummary] = useState<DashboardSummary | null>(null);
+  const [dashboardSummary, setDashboardSummary] =
+    useState<DashboardSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,8 +45,8 @@ export function App() {
         err instanceof Error
           ? err.message
           : typeof err === "string"
-          ? err
-          : "Failed to connect to local SQLite database or Tauri backend."
+            ? err
+            : "Failed to connect to local SQLite database or Tauri backend.",
       );
     } finally {
       setIsLoading(false);
@@ -162,10 +163,7 @@ export function App() {
       )}
 
       {activeTab === "payments" && (
-        <PaymentsView
-          currencySymbol={currencySymbol}
-          settings={settings}
-        />
+        <PaymentsView currencySymbol={currencySymbol} settings={settings} />
       )}
 
       {activeTab === "expenses" && (
@@ -173,23 +171,16 @@ export function App() {
       )}
 
       {activeTab === "invoices" && (
-        <InvoicesView
-          currencySymbol={currencySymbol}
-          settings={settings}
-        />
+        <InvoicesView currencySymbol={currencySymbol} settings={settings} />
       )}
 
       {activeTab === "reports" && (
         <ReportsView currencySymbol={currencySymbol} />
       )}
 
-      {activeTab === "calendar" && (
-        <CalendarView onNavigate={setActiveTab} />
-      )}
+      {activeTab === "calendar" && <CalendarView onNavigate={setActiveTab} />}
 
-      {activeTab === "files" && (
-        <FilesView />
-      )}
+      {activeTab === "files" && <FilesView />}
 
       {activeTab === "settings" && (
         <SettingsView

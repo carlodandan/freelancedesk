@@ -6,7 +6,7 @@ describe("Invoice Business Logic", () => {
     it("calculates example scenario: Item A ₱1,000, Item B ₱500, Discount ₱100 → Subtotal ₱1,500, Total ₱1,400", () => {
       const items = [
         { quantity: 1, unit_price_cents: 100000 }, // Item A ₱1,000.00
-        { quantity: 1, unit_price_cents: 50000 },  // Item B ₱500.00
+        { quantity: 1, unit_price_cents: 50000 }, // Item B ₱500.00
       ];
       const discountCents = 10000; // ₱100.00
       const taxRateBps = 0;
@@ -14,9 +14,9 @@ describe("Invoice Business Logic", () => {
       const result = calculateInvoiceTotals(items, discountCents, taxRateBps);
 
       expect(result.subtotalCents).toBe(150000); // ₱1,500.00
-      expect(result.discountCents).toBe(10000);  // ₱100.00
+      expect(result.discountCents).toBe(10000); // ₱100.00
       expect(result.taxAmountCents).toBe(0);
-      expect(result.totalCents).toBe(140000);    // ₱1,400.00
+      expect(result.totalCents).toBe(140000); // ₱1,400.00
     });
 
     it("handles multiple line items with different quantities", () => {
@@ -40,7 +40,7 @@ describe("Invoice Business Logic", () => {
 
       expect(result.subtotalCents).toBe(100000);
       expect(result.taxAmountCents).toBe(12000); // 12% of ₱1,000 = ₱120.00
-      expect(result.totalCents).toBe(112000);    // ₱1,120.00
+      expect(result.totalCents).toBe(112000); // ₱1,120.00
     });
 
     it("calculates tax after discount deduction", () => {
@@ -53,7 +53,7 @@ describe("Invoice Business Logic", () => {
       expect(result.subtotalCents).toBe(100000);
       expect(result.discountCents).toBe(20000);
       expect(result.taxAmountCents).toBe(8000); // 10% of ₱800 = ₱80.00
-      expect(result.totalCents).toBe(88000);   // ₱880.00
+      expect(result.totalCents).toBe(88000); // ₱880.00
     });
 
     it("caps discount so it does not exceed subtotal", () => {
@@ -92,7 +92,8 @@ describe("Invoice Business Logic", () => {
       const totalCents = 150000; // ₱1,500.00
       let paymentsCents = 0;
 
-      const getOutstanding = (total: number, paid: number) => Math.max(0, total - paid);
+      const getOutstanding = (total: number, paid: number) =>
+        Math.max(0, total - paid);
 
       expect(getOutstanding(totalCents, paymentsCents)).toBe(150000);
 

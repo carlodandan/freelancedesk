@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Calendar as CalendarIcon, Briefcase, Sparkles, FileText, CheckCircle2 } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  Briefcase,
+  Sparkles,
+  FileText,
+  CheckCircle2,
+} from "lucide-react";
 import { Card } from "../../components/ui/Card";
 import { Badge } from "../../components/ui/Badge";
 import { tauriService } from "../../services/tauri";
@@ -94,7 +100,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onNavigate }) => {
             Deadlines Calendar
           </h2>
           <p className="text-xs text-[#78716C] mt-0.5">
-            Chronological overview of project milestones, commission deliveries, and invoice due dates.
+            Chronological overview of project milestones, commission deliveries,
+            and invoice due dates.
           </p>
         </div>
       </div>
@@ -139,7 +146,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onNavigate }) => {
                       {evt.title}
                     </div>
                     <div className="text-xs text-[#78716C] mt-0.5">
-                      Client: <span className="font-medium text-[#57534E]">{evt.clientName}</span> • Type: <span className="capitalize">{evt.type}</span>
+                      Client:{" "}
+                      <span className="font-medium text-[#57534E]">
+                        {evt.clientName}
+                      </span>{" "}
+                      • Type: <span className="capitalize">{evt.type}</span>
                     </div>
                   </div>
                 </div>

@@ -52,10 +52,17 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 : "bg-[#EFF6FF] border border-[#BFDBFE] text-[#2563EB]"
             }`}
           >
-            {variant === "danger" ? <AlertTriangle size={20} /> : <Info size={20} />}
+            {variant === "danger" ? (
+              <AlertTriangle size={20} />
+            ) : (
+              <Info size={20} />
+            )}
           </div>
           <div className="flex-1 min-w-0">
-            <h3 id="confirm-dialog-title" className="text-base font-semibold text-[var(--text-primary)]">
+            <h3
+              id="confirm-dialog-title"
+              className="text-base font-semibold text-[var(--text-primary)]"
+            >
               {title}
             </h3>
             <p className="mt-1.5 text-xs text-[var(--text-secondary)] leading-relaxed">
@@ -87,4 +94,3 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     </div>
   );
 };
-

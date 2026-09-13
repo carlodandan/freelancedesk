@@ -11,24 +11,74 @@ interface Transaction {
 describe("Reports Business Logic & Boundary Conditions", () => {
   const transactions: Transaction[] = [
     // August 31 (End of August)
-    { date: "2026-08-31", amount_cents: 100000, type: "income", client_id: "client-a" },
-    { date: "2026-08-31", amount_cents: 20000, type: "expense", category_id: "cat-software" },
+    {
+      date: "2026-08-31",
+      amount_cents: 100000,
+      type: "income",
+      client_id: "client-a",
+    },
+    {
+      date: "2026-08-31",
+      amount_cents: 20000,
+      type: "expense",
+      category_id: "cat-software",
+    },
 
     // September 1 (Start of September)
-    { date: "2026-09-01", amount_cents: 250000, type: "income", client_id: "client-b" },
-    { date: "2026-09-01", amount_cents: 50000, type: "expense", category_id: "cat-office" },
+    {
+      date: "2026-09-01",
+      amount_cents: 250000,
+      type: "income",
+      client_id: "client-b",
+    },
+    {
+      date: "2026-09-01",
+      amount_cents: 50000,
+      type: "expense",
+      category_id: "cat-office",
+    },
 
     // Mid September
-    { date: "2026-09-15", amount_cents: 300000, type: "income", client_id: "client-a" },
-    { date: "2026-09-15", amount_cents: 75000, type: "expense", category_id: "cat-software" },
+    {
+      date: "2026-09-15",
+      amount_cents: 300000,
+      type: "income",
+      client_id: "client-a",
+    },
+    {
+      date: "2026-09-15",
+      amount_cents: 75000,
+      type: "expense",
+      category_id: "cat-software",
+    },
 
     // September 30 (End of September)
-    { date: "2026-09-30", amount_cents: 150000, type: "income", client_id: "client-b" },
-    { date: "2026-09-30", amount_cents: 10000, type: "expense", category_id: "cat-supplies" },
+    {
+      date: "2026-09-30",
+      amount_cents: 150000,
+      type: "income",
+      client_id: "client-b",
+    },
+    {
+      date: "2026-09-30",
+      amount_cents: 10000,
+      type: "expense",
+      category_id: "cat-supplies",
+    },
 
     // October 1 (Start of October)
-    { date: "2026-10-01", amount_cents: 400000, type: "income", client_id: "client-c" },
-    { date: "2026-10-01", amount_cents: 60000, type: "expense", category_id: "cat-hardware" },
+    {
+      date: "2026-10-01",
+      amount_cents: 400000,
+      type: "income",
+      client_id: "client-c",
+    },
+    {
+      date: "2026-10-01",
+      amount_cents: 60000,
+      type: "expense",
+      category_id: "cat-hardware",
+    },
   ];
 
   const filterByMonth = (monthKey: string) => {
@@ -39,11 +89,15 @@ describe("Reports Business Logic & Boundary Conditions", () => {
     const aug = filterByMonth("2026-08");
     expect(aug).toHaveLength(2);
 
-    const augIncome = aug.filter((t) => t.type === "income").reduce((s, t) => s + t.amount_cents, 0);
-    const augExpense = aug.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount_cents, 0);
+    const augIncome = aug
+      .filter((t) => t.type === "income")
+      .reduce((s, t) => s + t.amount_cents, 0);
+    const augExpense = aug
+      .filter((t) => t.type === "expense")
+      .reduce((s, t) => s + t.amount_cents, 0);
 
     expect(augIncome).toBe(100000); // ₱1,000.00
-    expect(augExpense).toBe(20000);  // ₱200.00
+    expect(augExpense).toBe(20000); // ₱200.00
     expect(augIncome - augExpense).toBe(80000); // Net ₱800.00
   });
 
@@ -51,8 +105,12 @@ describe("Reports Business Logic & Boundary Conditions", () => {
     const sept = filterByMonth("2026-09");
     expect(sept).toHaveLength(6);
 
-    const septIncome = sept.filter((t) => t.type === "income").reduce((s, t) => s + t.amount_cents, 0);
-    const septExpense = sept.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount_cents, 0);
+    const septIncome = sept
+      .filter((t) => t.type === "income")
+      .reduce((s, t) => s + t.amount_cents, 0);
+    const septExpense = sept
+      .filter((t) => t.type === "expense")
+      .reduce((s, t) => s + t.amount_cents, 0);
 
     // Income: 250k + 300k + 150k = 700k
     expect(septIncome).toBe(700000);
@@ -66,8 +124,12 @@ describe("Reports Business Logic & Boundary Conditions", () => {
     const oct = filterByMonth("2026-10");
     expect(oct).toHaveLength(2);
 
-    const octIncome = oct.filter((t) => t.type === "income").reduce((s, t) => s + t.amount_cents, 0);
-    const octExpense = oct.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount_cents, 0);
+    const octIncome = oct
+      .filter((t) => t.type === "income")
+      .reduce((s, t) => s + t.amount_cents, 0);
+    const octExpense = oct
+      .filter((t) => t.type === "expense")
+      .reduce((s, t) => s + t.amount_cents, 0);
 
     expect(octIncome).toBe(400000);
     expect(octExpense).toBe(60000);
@@ -107,7 +169,7 @@ describe("Reports Business Logic & Boundary Conditions", () => {
     const endDate = "2026-09-15";
 
     const inRange = transactions.filter(
-      (t) => t.date >= startDate && t.date <= endDate
+      (t) => t.date >= startDate && t.date <= endDate,
     );
 
     // Should include Sept 1 and Sept 15 only (4 transactions: 2 on Sept 1, 2 on Sept 15)

@@ -41,7 +41,7 @@ describe("DashboardView Component", () => {
         summary={mockSummary}
         currencySymbol="₱"
         onNavigate={onNavigate}
-      />
+      />,
     );
 
     expect(screen.getByText("Business Overview")).toBeInTheDocument();
@@ -60,14 +60,16 @@ describe("DashboardView Component", () => {
         summary={mockSummary}
         currencySymbol="₱"
         onNavigate={onNavigate}
-      />
+      />,
     );
 
     const newCommBtn = screen.getByRole("button", { name: /New Commission/i });
     await user.click(newCommBtn);
     expect(onNavigate).toHaveBeenCalledWith("commissions");
 
-    const recordPayBtn = screen.getByRole("button", { name: /Record Payment/i });
+    const recordPayBtn = screen.getByRole("button", {
+      name: /Record Payment/i,
+    });
     await user.click(recordPayBtn);
     expect(onNavigate).toHaveBeenCalledWith("payments");
   });
@@ -79,7 +81,7 @@ describe("DashboardView Component", () => {
         summary={null}
         currencySymbol="₱"
         onNavigate={onNavigate}
-      />
+      />,
     );
 
     expect(screen.getByText("Business Overview")).toBeInTheDocument();

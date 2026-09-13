@@ -21,7 +21,9 @@ interface ExpensesViewProps {
   currencySymbol: string;
 }
 
-export const ExpensesView: React.FC<ExpensesViewProps> = ({ currencySymbol }) => {
+export const ExpensesView: React.FC<ExpensesViewProps> = ({
+  currencySymbol,
+}) => {
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
   const [categories, setCategories] = useState<ExpenseCategoryItem[]>([]);
   const [projects, setProjects] = useState<ProjectItem[]>([]);
@@ -103,7 +105,9 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ currencySymbol }) =>
     if (!newCategoryName.trim()) return;
 
     try {
-      const cat = await tauriService.createExpenseCategory(newCategoryName.trim());
+      const cat = await tauriService.createExpenseCategory(
+        newCategoryName.trim(),
+      );
       setCategories([...categories, cat]);
       setCategoryId(cat.id);
       setNewCategoryName("");
@@ -138,11 +142,15 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ currencySymbol }) =>
     const matchesSearch =
       e.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       e.category_name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = categoryFilter === "all" || e.category_id === categoryFilter;
+    const matchesCategory =
+      categoryFilter === "all" || e.category_id === categoryFilter;
     return matchesSearch && matchesCategory;
   });
 
-  const totalExpenseCents = expenses.reduce((sum, e) => sum + e.amount_cents, 0);
+  const totalExpenseCents = expenses.reduce(
+    (sum, e) => sum + e.amount_cents,
+    0,
+  );
 
   return (
     <div className="space-y-6">
@@ -152,7 +160,8 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ currencySymbol }) =>
             Business Expenses
           </h2>
           <p className="text-xs text-[var(--text-muted)] mt-0.5">
-            Log equipment, software subscriptions, studio costs, and deductibles.
+            Log equipment, software subscriptions, studio costs, and
+            deductibles.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -207,7 +216,10 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ currencySymbol }) =>
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="relative w-72">
-            <Search size={14} className="absolute left-3 top-2.5 text-[var(--text-muted)]" />
+            <Search
+              size={14}
+              className="absolute left-3 top-2.5 text-[var(--text-muted)]"
+            />
             <input
               type="text"
               placeholder="Search by description or category..."
@@ -232,7 +244,11 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ currencySymbol }) =>
           </select>
         </div>
         <div className="text-xs text-[var(--text-muted)]">
-          Showing <span className="font-semibold text-[var(--text-primary)]">{filteredExpenses.length}</span> expenses
+          Showing{" "}
+          <span className="font-semibold text-[var(--text-primary)]">
+            {filteredExpenses.length}
+          </span>{" "}
+          expenses
         </div>
       </div>
 
@@ -254,7 +270,10 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ currencySymbol }) =>
               </thead>
               <tbody className="divide-y divide-[var(--border-subtle)]">
                 {filteredExpenses.map((exp) => (
-                  <tr key={exp.id} className="hover:bg-[var(--surface-muted)] transition-colors">
+                  <tr
+                    key={exp.id}
+                    className="hover:bg-[var(--surface-muted)] transition-colors"
+                  >
                     <td className="px-5 py-3.5 font-mono text-[var(--text-secondary)]">
                       {exp.date}
                     </td>
@@ -350,7 +369,11 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ currencySymbol }) =>
               onChange={(e) => setAmountInput(e.target.value)}
               placeholder="1500"
               required
-              prefixIcon={<span className="text-xs font-semibold text-[var(--text-muted)]">{currencySymbol}</span>}
+              prefixIcon={
+                <span className="text-xs font-semibold text-[var(--text-muted)]">
+                  {currencySymbol}
+                </span>
+              }
             />
           </div>
 
@@ -411,7 +434,12 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ currencySymbol }) =>
               type="submit"
               variant="primary"
               size="sm"
-              disabled={isSubmitting || !categoryId || !description.trim() || !amountInput}
+              disabled={
+                isSubmitting ||
+                !categoryId ||
+                !description.trim() ||
+                !amountInput
+              }
             >
               {isSubmitting ? "Saving..." : "Record Expense"}
             </Button>

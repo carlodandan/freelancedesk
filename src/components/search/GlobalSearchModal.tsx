@@ -60,11 +60,13 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
 
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setSelectedIndex((prev) => (totalItems > 0 ? (prev + 1) % totalItems : 0));
+        setSelectedIndex((prev) =>
+          totalItems > 0 ? (prev + 1) % totalItems : 0,
+        );
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         setSelectedIndex((prev) =>
-          totalItems > 0 ? (prev - 1 + totalItems) % totalItems : 0
+          totalItems > 0 ? (prev - 1 + totalItems) % totalItems : 0,
         );
       } else if (e.key === "Enter") {
         e.preventDefault();
@@ -112,12 +114,42 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     icon: React.ReactNode;
     desc: string;
   }[] = [
-    { tab: "clients", label: "Clients", icon: <Users size={16} />, desc: "Client contacts, accounts & balances" },
-    { tab: "projects", label: "Projects", icon: <Briefcase size={16} />, desc: "Active project milestones & deadlines" },
-    { tab: "commissions", label: "Commissions", icon: <Sparkles size={16} />, desc: "Job orders, deposits & delivery status" },
-    { tab: "payments", label: "Payments", icon: <CreditCard size={16} />, desc: "Logged payments & receipts" },
-    { tab: "expenses", label: "Expenses", icon: <Receipt size={16} />, desc: "Business expenses & deductibles" },
-    { tab: "invoices", label: "Invoices", icon: <FileText size={16} />, desc: "Generated client invoices" },
+    {
+      tab: "clients",
+      label: "Clients",
+      icon: <Users size={16} />,
+      desc: "Client contacts, accounts & balances",
+    },
+    {
+      tab: "projects",
+      label: "Projects",
+      icon: <Briefcase size={16} />,
+      desc: "Active project milestones & deadlines",
+    },
+    {
+      tab: "commissions",
+      label: "Commissions",
+      icon: <Sparkles size={16} />,
+      desc: "Job orders, deposits & delivery status",
+    },
+    {
+      tab: "payments",
+      label: "Payments",
+      icon: <CreditCard size={16} />,
+      desc: "Logged payments & receipts",
+    },
+    {
+      tab: "expenses",
+      label: "Expenses",
+      icon: <Receipt size={16} />,
+      desc: "Business expenses & deductibles",
+    },
+    {
+      tab: "invoices",
+      label: "Invoices",
+      icon: <FileText size={16} />,
+      desc: "Generated client invoices",
+    },
   ];
 
   const getEntityIcon = (type: string) => {
@@ -167,7 +199,10 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
       <div className="relative w-full max-w-xl bg-[var(--bg-surface)] border border-[var(--border-ledger)] rounded-xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[80vh]">
         {/* Search Input Bar */}
         <div className="flex items-center px-4 border-b border-[var(--border-ledger)] bg-[var(--bg-surface-subtle)]">
-          <Search size={18} className="text-[var(--text-muted)] shrink-0 mr-3" />
+          <Search
+            size={18}
+            className="text-[var(--text-muted)] shrink-0 mr-3"
+          />
           <input
             ref={inputRef}
             type="text"
@@ -278,11 +313,12 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                     </div>
 
                     <div className="text-right">
-                      {entry.amount_cents !== null && entry.amount_cents !== undefined && (
-                        <div className="text-xs font-mono font-bold text-[var(--text-primary)] tabular-nums">
-                          {formatCents(entry.amount_cents, currencySymbol)}
-                        </div>
-                      )}
+                      {entry.amount_cents !== null &&
+                        entry.amount_cents !== undefined && (
+                          <div className="text-xs font-mono font-bold text-[var(--text-primary)] tabular-nums">
+                            {formatCents(entry.amount_cents, currencySymbol)}
+                          </div>
+                        )}
                       {entry.status && (
                         <span className="inline-block mt-0.5 px-2 py-0.2 rounded bg-[var(--bg-surface-subtle)] text-[10px] font-medium text-[var(--text-secondary)] capitalize border border-[var(--border-ledger)]">
                           {entry.status}

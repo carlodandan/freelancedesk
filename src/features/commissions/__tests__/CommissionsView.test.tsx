@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
+import {
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CommissionsView } from "../CommissionsView";
 import { tauriService } from "../../../services/tauri";
@@ -77,7 +83,9 @@ describe("CommissionsView Component", () => {
     const modal = screen.getByRole("dialog");
     expect(within(modal).getByText(/Commission Title/i)).toBeInTheDocument();
 
-    const titleInput = within(modal).getByPlaceholderText(/e.g. Character Illustration Full Body/i);
+    const titleInput = within(modal).getByPlaceholderText(
+      /e.g. Character Illustration Full Body/i,
+    );
     await user.type(titleInput, "New Illustration");
 
     const priceInput = within(modal).getByPlaceholderText("2000");
@@ -89,7 +97,9 @@ describe("CommissionsView Component", () => {
     });
 
     // Submit form
-    const createBtn = within(modal).getByRole("button", { name: /Save Commission/i });
+    const createBtn = within(modal).getByRole("button", {
+      name: /Save Commission/i,
+    });
     await user.click(createBtn);
 
     await waitFor(() => {
@@ -98,7 +108,7 @@ describe("CommissionsView Component", () => {
           title: "New Illustration",
           price_cents: 200000,
           deposit_percentage: 50,
-        })
+        }),
       );
     });
   });
@@ -114,7 +124,10 @@ describe("CommissionsView Component", () => {
     fireEvent.change(statusSelect, { target: { value: "completed" } });
 
     await waitFor(() => {
-      expect(tauriService.updateCommissionStatus).toHaveBeenCalledWith("comm-1", "completed");
+      expect(tauriService.updateCommissionStatus).toHaveBeenCalledWith(
+        "comm-1",
+        "completed",
+      );
     });
   });
 });

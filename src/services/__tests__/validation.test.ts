@@ -211,7 +211,11 @@ describe("Domain Validation Utilities", () => {
         client_id: "c-1",
         issue_date: "2026-09-14",
         items: [
-          { description: "Design Services", quantity: 1, unit_price_cents: 200000 },
+          {
+            description: "Design Services",
+            quantity: 1,
+            unit_price_cents: 200000,
+          },
         ],
       });
       expect(result.isValid).toBe(true);
@@ -231,9 +235,7 @@ describe("Domain Validation Utilities", () => {
       const result = validateInvoice({
         client_id: "c-1",
         issue_date: "2026-09-14",
-        items: [
-          { description: "", quantity: 0, unit_price_cents: -500 },
-        ],
+        items: [{ description: "", quantity: 0, unit_price_cents: -500 }],
       });
       expect(result.isValid).toBe(false);
       expect(result.errors["item_0_desc"]).toBeDefined();

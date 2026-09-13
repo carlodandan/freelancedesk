@@ -1,5 +1,11 @@
 import React, { useState, createContext, useContext } from "react";
-import { CheckCircle2, AlertCircle, Info, AlertTriangle, X } from "lucide-react";
+import {
+  CheckCircle2,
+  AlertCircle,
+  Info,
+  AlertTriangle,
+  X,
+} from "lucide-react";
 
 export interface ToastItem {
   id: string;
@@ -20,7 +26,9 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
-export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const showToast = (toastOrMessage: ToastInput, type?: ToastItem["type"]) => {
@@ -105,11 +113,13 @@ export const useToast = () => {
   if (!context) {
     return {
       showToast: (toastOrMessage: ToastInput, type?: ToastItem["type"]) => {
-        const msg = typeof toastOrMessage === "string" ? toastOrMessage : toastOrMessage.message;
+        const msg =
+          typeof toastOrMessage === "string"
+            ? toastOrMessage
+            : toastOrMessage.message;
         console.log(`Toast [${type || "info"}]:`, msg);
       },
     };
   }
   return context;
 };
-

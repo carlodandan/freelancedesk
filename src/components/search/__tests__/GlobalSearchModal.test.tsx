@@ -35,10 +35,12 @@ describe("GlobalSearchModal Component", () => {
         isOpen={false}
         onClose={vi.fn()}
         onNavigate={vi.fn()}
-      />
+      />,
     );
 
-    expect(screen.queryByPlaceholderText(/Search clients, projects/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText(/Search clients, projects/i),
+    ).not.toBeInTheDocument();
   });
 
   it("renders when isOpen is true and focuses input", () => {
@@ -47,10 +49,12 @@ describe("GlobalSearchModal Component", () => {
         isOpen={true}
         onClose={vi.fn()}
         onNavigate={vi.fn()}
-      />
+      />,
     );
 
-    expect(screen.getByPlaceholderText(/Search clients, projects/i)).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/Search clients, projects/i),
+    ).toBeInTheDocument();
   });
 
   it("performs global search when user types query", async () => {
@@ -60,7 +64,7 @@ describe("GlobalSearchModal Component", () => {
         isOpen={true}
         onClose={vi.fn()}
         onNavigate={vi.fn()}
-      />
+      />,
     );
 
     const input = screen.getByPlaceholderText(/Search clients, projects/i);
@@ -84,7 +88,7 @@ describe("GlobalSearchModal Component", () => {
         isOpen={true}
         onClose={onClose}
         onNavigate={onNavigate}
-      />
+      />,
     );
 
     const input = screen.getByPlaceholderText(/Search clients, projects/i);
@@ -108,7 +112,7 @@ describe("GlobalSearchModal Component", () => {
         isOpen={true}
         onClose={onClose}
         onNavigate={vi.fn()}
-      />
+      />,
     );
 
     fireEvent.keyDown(window, { key: "Escape" });

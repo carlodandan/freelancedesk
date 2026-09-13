@@ -37,7 +37,11 @@ export function validateClient(input: {
     errors.name = "Client name is required";
   }
 
-  if (input.email && input.email.trim().length > 0 && !isValidEmail(input.email.trim())) {
+  if (
+    input.email &&
+    input.email.trim().length > 0 &&
+    !isValidEmail(input.email.trim())
+  ) {
     errors.email = "Invalid email address format";
   }
 
@@ -72,11 +76,16 @@ export function validateCommission(input: {
 
   if (typeof input.deposit_percentage === "number") {
     if (input.deposit_percentage < 0 || input.deposit_percentage > 100) {
-      errors.deposit_percentage = "Deposit percentage must be between 0 and 100";
+      errors.deposit_percentage =
+        "Deposit percentage must be between 0 and 100";
     }
   }
 
-  if (input.deadline && input.deadline.trim().length > 0 && !isValidDateString(input.deadline.trim())) {
+  if (
+    input.deadline &&
+    input.deadline.trim().length > 0 &&
+    !isValidDateString(input.deadline.trim())
+  ) {
     errors.deadline = "Deadline must be a valid date (YYYY-MM-DD)";
   }
 
@@ -149,7 +158,11 @@ export function validateInvoice(input: {
   client_id?: string;
   issue_date?: string;
   due_date?: string;
-  items?: Array<{ description: string; quantity: number; unit_price_cents: number }>;
+  items?: Array<{
+    description: string;
+    quantity: number;
+    unit_price_cents: number;
+  }>;
   discount_cents?: number;
   tax_rate_bps?: number;
 }): ValidationResult {
@@ -172,13 +185,19 @@ export function validateInvoice(input: {
   } else {
     input.items.forEach((item, idx) => {
       if (!item.description || item.description.trim().length === 0) {
-        errors[`item_${idx}_desc`] = `Line item ${idx + 1} description is required`;
+        errors[`item_${idx}_desc`] =
+          `Line item ${idx + 1} description is required`;
       }
       if (typeof item.quantity !== "number" || item.quantity <= 0) {
-        errors[`item_${idx}_qty`] = `Line item ${idx + 1} quantity must be at least 1`;
+        errors[`item_${idx}_qty`] =
+          `Line item ${idx + 1} quantity must be at least 1`;
       }
-      if (typeof item.unit_price_cents !== "number" || item.unit_price_cents < 0) {
-        errors[`item_${idx}_price`] = `Line item ${idx + 1} price cannot be negative`;
+      if (
+        typeof item.unit_price_cents !== "number" ||
+        item.unit_price_cents < 0
+      ) {
+        errors[`item_${idx}_price`] =
+          `Line item ${idx + 1} price cannot be negative`;
       }
     });
   }

@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Upload, Trash2, File, Image, FileText } from "lucide-react";
 import { Card } from "../../components/ui/Card";
-import { AttachmentItem, ClientItem, AddAttachmentInput } from "../../types/entities";
+import {
+  AttachmentItem,
+  ClientItem,
+  AddAttachmentInput,
+} from "../../types/entities";
 import { tauriService } from "../../services/tauri";
 
 export const FilesView: React.FC = () => {
@@ -17,7 +21,10 @@ export const FilesView: React.FC = () => {
       setClients(clientList);
       if (clientList.length > 0 && !selectedEntityId) {
         setSelectedEntityId(clientList[0].id);
-        const atts = await tauriService.getAttachments("clients", clientList[0].id);
+        const atts = await tauriService.getAttachments(
+          "clients",
+          clientList[0].id,
+        );
         setAttachments(atts);
       }
     } catch (err) {
@@ -94,7 +101,8 @@ export const FilesView: React.FC = () => {
             Files & Attachments
           </h2>
           <p className="text-xs text-[#78716C] mt-0.5">
-            Safely store reference artwork, briefs, and deliverables in your local application directory.
+            Safely store reference artwork, briefs, and deliverables in your
+            local application directory.
           </p>
         </div>
 
@@ -157,7 +165,8 @@ export const FilesView: React.FC = () => {
                       {att.file_name}
                     </div>
                     <div className="text-xs text-[#78716C] mt-0.5 font-mono">
-                      {formatFileSize(att.file_size_bytes)} • {att.created_at.slice(0, 10)}
+                      {formatFileSize(att.file_size_bytes)} •{" "}
+                      {att.created_at.slice(0, 10)}
                     </div>
                   </div>
                 </div>
@@ -180,7 +189,8 @@ export const FilesView: React.FC = () => {
         </Card>
       ) : (
         <div className="p-12 text-center text-xs text-[#8C867A] bg-white border border-[#E5E0D5] rounded-lg">
-          No files attached to this client yet. Use "Upload File" above to attach sketches, briefs, or deliverables.
+          No files attached to this client yet. Use "Upload File" above to
+          attach sketches, briefs, or deliverables.
         </div>
       )}
     </div>

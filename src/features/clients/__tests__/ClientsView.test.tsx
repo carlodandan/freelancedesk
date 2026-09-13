@@ -55,7 +55,9 @@ describe("ClientsView Component", () => {
   it("renders clients list and ledger summary headers", async () => {
     render(<ClientsView currencySymbol="₱" />);
 
-    expect(screen.getByRole("heading", { name: "Client Directory" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Client Directory" }),
+    ).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText("Juan Dela Cruz")).toBeInTheDocument();
@@ -109,7 +111,7 @@ describe("ClientsView Component", () => {
         expect.objectContaining({
           name: "New Client",
           email: "new@example.com",
-        })
+        }),
       );
     });
   });

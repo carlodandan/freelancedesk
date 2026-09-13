@@ -49,32 +49,43 @@ describe("Expenses Business Logic & Calculations", () => {
   ];
 
   it("calculates total expense summation accurately in minor units", () => {
-    const total = sampleExpenses.reduce((sum, exp) => sum + exp.amount_cents, 0);
+    const total = sampleExpenses.reduce(
+      (sum, exp) => sum + exp.amount_cents,
+      0,
+    );
     expect(total).toBe(1250000); // ₱12,500.00
   });
 
   it("filters expenses by category", () => {
     const softwareExpenses = sampleExpenses.filter(
-      (e) => e.category_id === "cat-software"
+      (e) => e.category_id === "cat-software",
     );
     expect(softwareExpenses).toHaveLength(2);
 
-    const totalSoftware = softwareExpenses.reduce((s, e) => s + e.amount_cents, 0);
+    const totalSoftware = softwareExpenses.reduce(
+      (s, e) => s + e.amount_cents,
+      0,
+    );
     expect(totalSoftware).toBe(200000); // ₱2,000.00
   });
 
   it("filters expenses by date range", () => {
     const septemberExpenses = sampleExpenses.filter(
-      (e) => e.date >= "2026-09-01" && e.date <= "2026-09-30"
+      (e) => e.date >= "2026-09-01" && e.date <= "2026-09-30",
     );
     expect(septemberExpenses).toHaveLength(3);
 
-    const totalSeptember = septemberExpenses.reduce((s, e) => s + e.amount_cents, 0);
+    const totalSeptember = septemberExpenses.reduce(
+      (s, e) => s + e.amount_cents,
+      0,
+    );
     expect(totalSeptember).toBe(1050000); // ₱10,500.00
   });
 
   it("filters expenses by associated project", () => {
-    const projectExpenses = sampleExpenses.filter((e) => e.project_id === "proj-123");
+    const projectExpenses = sampleExpenses.filter(
+      (e) => e.project_id === "proj-123",
+    );
     expect(projectExpenses).toHaveLength(1);
     expect(projectExpenses[0].project_name).toBe("Brand Redesign");
     expect(projectExpenses[0].amount_cents).toBe(850000);

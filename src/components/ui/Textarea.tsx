@@ -8,7 +8,8 @@ export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextArea
 
 export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ label, error, hint, className = "", id, rows = 3, ...props }, ref) => {
-    const textareaId = id || (label ? label.toLowerCase().replace(/\s+/g, "-") : undefined);
+    const textareaId =
+      id || (label ? label.toLowerCase().replace(/\s+/g, "-") : undefined);
     const descId = error || hint ? `${textareaId}-desc` : undefined;
 
     return (
@@ -46,8 +47,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         )}
       </div>
     );
-  }
+  },
 );
 
 Textarea.displayName = "Textarea";
-

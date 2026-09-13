@@ -38,14 +38,15 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
   // Form state
   const [clientId, setClientId] = useState("");
   const [issueDate, setIssueDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
   const [dueDate, setDueDate] = useState("");
   const [discountInput, setDiscountInput] = useState("");
   const [taxRateInput, setTaxRateInput] = useState("0");
   const [notes, setNotes] = useState("");
   const [paymentInstructions, setPaymentInstructions] = useState(
-    settings.default_payment_terms || "Payment due within 15 days of invoice date."
+    settings.default_payment_terms ||
+      "Payment due within 15 days of invoice date.",
   );
   const [lineItems, setLineItems] = useState<CreateInvoiceLineItemInput[]>([
     { description: "Freelance Service", quantity: 1, unit_price_cents: 100000 },
@@ -91,7 +92,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
   const updateLineItem = (
     index: number,
     field: keyof CreateInvoiceLineItemInput,
-    value: any
+    value: any,
   ) => {
     const updated = [...lineItems];
     updated[index] = { ...updated[index], [field]: value };
@@ -132,7 +133,11 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
       });
 
       // Offer immediate PDF download
-      if (window.confirm(`Invoice ${newInv.invoice_number} created! Would you like to download the PDF now?`)) {
+      if (
+        window.confirm(
+          `Invoice ${newInv.invoice_number} created! Would you like to download the PDF now?`,
+        )
+      ) {
         generateInvoicePdf(newInv, settings, true);
       }
     } catch (err) {
@@ -177,7 +182,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
   const filteredInvoices = invoices.filter(
     (inv) =>
       inv.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      inv.client_name.toLowerCase().includes(searchQuery.toLowerCase())
+      inv.client_name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -188,7 +193,8 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
             Invoices
           </h2>
           <p className="text-xs text-[#78716C] mt-0.5">
-            Generate clean, professional offline PDF invoices with sequential numbering.
+            Generate clean, professional offline PDF invoices with sequential
+            numbering.
           </p>
         </div>
         <Button
@@ -204,7 +210,10 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
       {/* Controls */}
       <div className="flex items-center justify-between gap-4">
         <div className="relative w-80">
-          <Search size={14} className="absolute left-3 top-2.5 text-[#8C867A]" />
+          <Search
+            size={14}
+            className="absolute left-3 top-2.5 text-[#8C867A]"
+          />
           <input
             type="text"
             placeholder="Search invoices by number or client..."
@@ -214,7 +223,11 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
           />
         </div>
         <div className="text-xs text-[#78716C]">
-          Showing <span className="font-semibold text-[#1C1917]">{filteredInvoices.length}</span> invoices
+          Showing{" "}
+          <span className="font-semibold text-[#1C1917]">
+            {filteredInvoices.length}
+          </span>{" "}
+          invoices
         </div>
       </div>
 
@@ -236,7 +249,10 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
               </thead>
               <tbody className="divide-y divide-[#ECE8DE]">
                 {filteredInvoices.map((inv) => (
-                  <tr key={inv.id} className="hover:bg-[#FAF8F5] transition-colors">
+                  <tr
+                    key={inv.id}
+                    className="hover:bg-[#FAF8F5] transition-colors"
+                  >
                     <td className="px-5 py-3.5 font-mono font-bold text-[#854D0E]">
                       {inv.invoice_number}
                     </td>
@@ -255,7 +271,9 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                     <td className="px-4 py-3.5 text-center">
                       <select
                         value={inv.status}
-                        onChange={(e) => handleUpdateStatus(inv.id, e.target.value)}
+                        onChange={(e) =>
+                          handleUpdateStatus(inv.id, e.target.value)
+                        }
                         className="text-[11px] font-semibold rounded px-2 py-0.5 border border-[#E5E0D5] bg-[#FAF8F5] text-[#1C1917] focus:outline-none"
                       >
                         <option value="draft">Draft</option>
@@ -268,7 +286,9 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
-                          onClick={() => generateInvoicePdf(inv, settings, true)}
+                          onClick={() =>
+                            generateInvoicePdf(inv, settings, true)
+                          }
                           className="p-1 rounded text-[#854D0E] hover:text-[#713F12] hover:bg-[#F4F1EA] flex items-center gap-1 text-[11px] font-medium"
                           title="Download Invoice PDF"
                         >
@@ -363,7 +383,9 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                   type="text"
                   placeholder="Service description"
                   value={item.description}
-                  onChange={(e) => updateLineItem(idx, "description", e.target.value)}
+                  onChange={(e) =>
+                    updateLineItem(idx, "description", e.target.value)
+                  }
                   className="flex-1 rounded border border-[#E5E0D5] px-2 py-1 text-xs bg-white"
                   required
                 />
@@ -373,19 +395,25 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                   min="1"
                   value={item.quantity}
                   onChange={(e) =>
-                    updateLineItem(idx, "quantity", parseInt(e.target.value, 10) || 1)
+                    updateLineItem(
+                      idx,
+                      "quantity",
+                      parseInt(e.target.value, 10) || 1,
+                    )
                   }
                   className="w-14 rounded border border-[#E5E0D5] px-2 py-1 text-xs bg-white text-center"
                 />
                 <input
                   type="number"
                   placeholder="Price"
-                  value={item.unit_price_cents ? item.unit_price_cents / 100 : ""}
+                  value={
+                    item.unit_price_cents ? item.unit_price_cents / 100 : ""
+                  }
                   onChange={(e) =>
                     updateLineItem(
                       idx,
                       "unit_price_cents",
-                      Math.round(parseFloat(e.target.value || "0") * 100)
+                      Math.round(parseFloat(e.target.value || "0") * 100),
                     )
                   }
                   className="w-24 rounded border border-[#E5E0D5] px-2 py-1 text-xs bg-white text-right font-mono"
@@ -410,7 +438,11 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
               value={discountInput}
               onChange={(e) => setDiscountInput(e.target.value)}
               placeholder="0"
-              prefixIcon={<span className="text-xs font-semibold text-[var(--text-muted)]">{currencySymbol}</span>}
+              prefixIcon={
+                <span className="text-xs font-semibold text-[var(--text-muted)]">
+                  {currencySymbol}
+                </span>
+              }
             />
             <Input
               label="Tax Rate (%)"

@@ -23,7 +23,11 @@ describe("Commission Business Logic", () => {
       const depositCents = 100000;
       const paidCents = 50000;
 
-      const balance = calculateCommissionBalance(priceCents, paidCents, depositCents);
+      const balance = calculateCommissionBalance(
+        priceCents,
+        paidCents,
+        depositCents,
+      );
       expect(balance.remainingBalanceCents).toBe(150000);
       expect(balance.paymentStatus).toBe("partially_paid");
     });
@@ -35,7 +39,11 @@ describe("Commission Business Logic", () => {
       const payment2 = 50000;
       const totalPaid = payment1 + payment2;
 
-      const balance = calculateCommissionBalance(priceCents, totalPaid, depositCents);
+      const balance = calculateCommissionBalance(
+        priceCents,
+        totalPaid,
+        depositCents,
+      );
       expect(balance.remainingBalanceCents).toBe(100000);
       expect(balance.paymentStatus).toBe("deposit_paid");
     });
@@ -47,7 +55,11 @@ describe("Commission Business Logic", () => {
       const payment2 = 100000;
       const totalPaid = payment1 + payment2;
 
-      const balance = calculateCommissionBalance(priceCents, totalPaid, depositCents);
+      const balance = calculateCommissionBalance(
+        priceCents,
+        totalPaid,
+        depositCents,
+      );
       expect(balance.remainingBalanceCents).toBe(0);
       expect(balance.paymentStatus).toBe("fully_paid");
     });
@@ -77,12 +89,19 @@ describe("Commission Business Logic", () => {
 
     it("100% deposit commission (upfront full payment required)", () => {
       const priceCents = 200000;
-      const { depositCents, remainingCents } = calculateDeposit(priceCents, 100);
+      const { depositCents, remainingCents } = calculateDeposit(
+        priceCents,
+        100,
+      );
       expect(depositCents).toBe(200000);
       expect(remainingCents).toBe(0);
 
       // Partial payment
-      let balance = calculateCommissionBalance(priceCents, 100000, depositCents);
+      let balance = calculateCommissionBalance(
+        priceCents,
+        100000,
+        depositCents,
+      );
       expect(balance.remainingBalanceCents).toBe(100000);
       expect(balance.paymentStatus).toBe("partially_paid");
 
@@ -131,7 +150,10 @@ describe("Commission Business Logic", () => {
     it("parses decimal currency values accurately for commission input", () => {
       const price = parseToCents("1,250.75");
       const depositPct = 50;
-      const { depositCents, remainingCents } = calculateDeposit(price, depositPct);
+      const { depositCents, remainingCents } = calculateDeposit(
+        price,
+        depositPct,
+      );
 
       expect(price).toBe(125075);
       expect(depositCents).toBe(62538); // Math.round(125075 * 0.5) = 62537.5 -> 62538

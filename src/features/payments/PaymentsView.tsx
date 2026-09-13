@@ -41,7 +41,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   const [commissionId, setCommissionId] = useState("");
   const [amountInput, setAmountInput] = useState("");
   const [paymentDate, setPaymentDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
   const [paymentMethod, setPaymentMethod] = useState("Bank Transfer");
   const [referenceNumber, setReferenceNumber] = useState("");
@@ -118,12 +118,23 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
         message: `Payment of ${formatCents(amountCents, currencySymbol)} recorded!`,
         action: {
           label: "Download Receipt",
-          onClick: () => generateReceiptPdf(newPayment, settings, comm?.title, remaining, true),
+          onClick: () =>
+            generateReceiptPdf(
+              newPayment,
+              settings,
+              comm?.title,
+              remaining,
+              true,
+            ),
         },
       });
 
       // Offer immediate PDF receipt download
-      if (window.confirm("Payment recorded! Would you like to download the official PDF receipt?")) {
+      if (
+        window.confirm(
+          "Payment recorded! Would you like to download the official PDF receipt?",
+        )
+      ) {
         generateReceiptPdf(newPayment, settings, comm?.title, remaining, true);
       }
     } catch (err) {
@@ -138,7 +149,11 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   };
 
   const handleDeletePayment = async (id: string) => {
-    if (window.confirm("Delete this payment record? Commission balances will adjust.")) {
+    if (
+      window.confirm(
+        "Delete this payment record? Commission balances will adjust.",
+      )
+    ) {
       try {
         await tauriService.deletePayment(id);
         showToast({
@@ -162,13 +177,19 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   const filteredPayments = payments.filter((p) => {
     return (
       p.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (p.commission_title && p.commission_title.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (p.receipt_number && p.receipt_number.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (p.reference_number && p.reference_number.toLowerCase().includes(searchQuery.toLowerCase()))
+      (p.commission_title &&
+        p.commission_title.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (p.receipt_number &&
+        p.receipt_number.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (p.reference_number &&
+        p.reference_number.toLowerCase().includes(searchQuery.toLowerCase()))
     );
   });
 
-  const totalCollectedCents = payments.reduce((sum, p) => sum + p.amount_cents, 0);
+  const totalCollectedCents = payments.reduce(
+    (sum, p) => sum + p.amount_cents,
+    0,
+  );
 
   return (
     <div className="space-y-6">
@@ -178,7 +199,8 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
             Payments Ledger
           </h2>
           <p className="text-xs text-[var(--text-muted)] mt-0.5">
-            Record client deposits, final balances, and export verified PDF receipts.
+            Record client deposits, final balances, and export verified PDF
+            receipts.
           </p>
         </div>
         <Button
@@ -222,7 +244,10 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
       {/* Filter */}
       <div className="flex items-center justify-between gap-4">
         <div className="relative w-80">
-          <Search size={14} className="absolute left-3 top-2.5 text-[var(--text-muted)]" />
+          <Search
+            size={14}
+            className="absolute left-3 top-2.5 text-[var(--text-muted)]"
+          />
           <input
             type="text"
             placeholder="Search payments by client, reference, or receipt..."
@@ -232,7 +257,11 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
           />
         </div>
         <div className="text-xs text-[var(--text-muted)]">
-          Showing <span className="font-semibold text-[var(--text-primary)]">{filteredPayments.length}</span> payments
+          Showing{" "}
+          <span className="font-semibold text-[var(--text-primary)]">
+            {filteredPayments.length}
+          </span>{" "}
+          payments
         </div>
       </div>
 
@@ -254,7 +283,10 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
               </thead>
               <tbody className="divide-y divide-[var(--border-subtle)]">
                 {filteredPayments.map((p) => (
-                  <tr key={p.id} className="hover:bg-[var(--surface-muted)] transition-colors">
+                  <tr
+                    key={p.id}
+                    className="hover:bg-[var(--surface-muted)] transition-colors"
+                  >
                     <td className="px-5 py-3.5 font-mono text-[11px] font-medium text-[var(--primary)]">
                       {p.receipt_number || p.id.slice(0, 8)}
                     </td>
@@ -278,7 +310,15 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
-                          onClick={() => generateReceiptPdf(p, settings, p.commission_title || undefined, undefined, true)}
+                          onClick={() =>
+                            generateReceiptPdf(
+                              p,
+                              settings,
+                              p.commission_title || undefined,
+                              undefined,
+                              true,
+                            )
+                          }
                           className="p-1 rounded text-[var(--primary)] hover:text-[var(--primary-hover)] hover:bg-[var(--surface-muted)] flex items-center gap-1 text-[11px] font-medium transition-colors"
                           title="Download Official Receipt PDF"
                           aria-label={`Download receipt PDF for ${p.receipt_number || p.client_name}`}
@@ -336,7 +376,8 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
             <option value="">None (General Client Payment)</option>
             {commissions.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.title} — {c.client_name} (Remaining: {formatCents(c.remaining_balance_cents, currencySymbol)})
+                {c.title} — {c.client_name} (Remaining:{" "}
+                {formatCents(c.remaining_balance_cents, currencySymbol)})
               </option>
             ))}
           </Select>
@@ -362,7 +403,11 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
               placeholder="1000"
               required
               autoFocus
-              prefixIcon={<span className="text-xs font-semibold text-[var(--text-muted)]">{currencySymbol}</span>}
+              prefixIcon={
+                <span className="text-xs font-semibold text-[var(--text-muted)]">
+                  {currencySymbol}
+                </span>
+              }
             />
             <Input
               label="Payment Date *"

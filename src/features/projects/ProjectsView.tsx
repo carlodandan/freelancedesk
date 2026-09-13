@@ -5,7 +5,11 @@ import { Button } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Modal";
 import { Input } from "../../components/ui/Input";
 import { EmptyState } from "../../components/ui/EmptyState";
-import { ProjectItem, ClientItem, CreateProjectInput } from "../../types/entities";
+import {
+  ProjectItem,
+  ClientItem,
+  CreateProjectInput,
+} from "../../types/entities";
 import { tauriService } from "../../services/tauri";
 import { formatCents, parseToCents } from "../../services/currency";
 
@@ -13,7 +17,9 @@ interface ProjectsViewProps {
   currencySymbol: string;
 }
 
-export const ProjectsView: React.FC<ProjectsViewProps> = ({ currencySymbol }) => {
+export const ProjectsView: React.FC<ProjectsViewProps> = ({
+  currencySymbol,
+}) => {
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [clients, setClients] = useState<ClientItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -82,7 +88,10 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ currencySymbol }) =>
     }
   };
 
-  const handleUpdateStatus = async (project: ProjectItem, newStatus: string) => {
+  const handleUpdateStatus = async (
+    project: ProjectItem,
+    newStatus: string,
+  ) => {
     try {
       await tauriService.updateProject({
         id: project.id,
@@ -154,7 +163,10 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ currencySymbol }) =>
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="relative w-72">
-            <Search size={14} className="absolute left-3 top-2.5 text-[#8C867A]" />
+            <Search
+              size={14}
+              className="absolute left-3 top-2.5 text-[#8C867A]"
+            />
             <input
               type="text"
               placeholder="Search projects or clients..."
@@ -179,7 +191,11 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ currencySymbol }) =>
           </select>
         </div>
         <div className="text-xs text-[#78716C]">
-          Showing <span className="font-semibold text-[#1C1917]">{filteredProjects.length}</span> projects
+          Showing{" "}
+          <span className="font-semibold text-[#1C1917]">
+            {filteredProjects.length}
+          </span>{" "}
+          projects
         </div>
       </div>
 
@@ -201,9 +217,14 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ currencySymbol }) =>
               </thead>
               <tbody className="divide-y divide-[#ECE8DE]">
                 {filteredProjects.map((proj) => (
-                  <tr key={proj.id} className="hover:bg-[#FAF8F5] transition-colors">
+                  <tr
+                    key={proj.id}
+                    className="hover:bg-[#FAF8F5] transition-colors"
+                  >
                     <td className="px-5 py-3.5">
-                      <div className="font-semibold text-[#1C1917]">{proj.name}</div>
+                      <div className="font-semibold text-[#1C1917]">
+                        {proj.name}
+                      </div>
                       {proj.description && (
                         <div className="text-[11px] text-[#78716C] line-clamp-1">
                           {proj.description}
@@ -232,7 +253,9 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({ currencySymbol }) =>
                     <td className="px-4 py-3.5 text-center">
                       <select
                         value={proj.status}
-                        onChange={(e) => handleUpdateStatus(proj, e.target.value)}
+                        onChange={(e) =>
+                          handleUpdateStatus(proj, e.target.value)
+                        }
                         className="text-[11px] font-semibold rounded px-2 py-0.5 border border-[#E5E0D5] bg-[#FAF8F5] text-[#1C1917] focus:outline-none"
                       >
                         <option value="planning">Planning</option>

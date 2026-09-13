@@ -264,7 +264,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     dotAccent: "bg-[#D97706]",
                   },
                 ].map((themeOpt) => {
-                  const isSelected = (formData.theme || "paper") === themeOpt.id;
+                  const isSelected =
+                    (formData.theme || "paper") === themeOpt.id;
                   return (
                     <button
                       key={themeOpt.id}
@@ -272,9 +273,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       onClick={() => {
                         setFormData({ ...formData, theme: themeOpt.id });
                         if (themeOpt.id === "paper") {
-                          document.documentElement.removeAttribute("data-theme");
+                          document.documentElement.removeAttribute(
+                            "data-theme",
+                          );
                         } else {
-                          document.documentElement.setAttribute("data-theme", themeOpt.id);
+                          document.documentElement.setAttribute(
+                            "data-theme",
+                            themeOpt.id,
+                          );
                         }
                       }}
                       className={`p-4 rounded-lg border text-left transition-all cursor-pointer ${
@@ -465,7 +471,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     Restore Database from Backup
                   </div>
                   <p className="text-[11px] text-[#78716C] mt-0.5">
-                    Restores your records. A safety backup of your current database is always created automatically prior to restoring.
+                    Restores your records. A safety backup of your current
+                    database is always created automatically prior to restoring.
                   </p>
                   <div className="mt-3 flex items-center gap-2">
                     <input
@@ -479,13 +486,21 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       variant="danger"
                       size="sm"
                       onClick={async () => {
-                        const input = document.getElementById("restore-path-input") as HTMLInputElement;
+                        const input = document.getElementById(
+                          "restore-path-input",
+                        ) as HTMLInputElement;
                         const val = input?.value.trim();
                         if (!val) {
-                          alert("Please enter the full path to a backup .db file.");
+                          alert(
+                            "Please enter the full path to a backup .db file.",
+                          );
                           return;
                         }
-                        if (confirm("Restore this database? An automatic safety backup will be created first.")) {
+                        if (
+                          confirm(
+                            "Restore this database? An automatic safety backup will be created first.",
+                          )
+                        ) {
                           try {
                             const res = await tauriService.restoreBackup(val);
                             alert(res);

@@ -76,11 +76,19 @@ export const tauriService = {
   },
 
   // Commissions
-  async getCommissions(clientId?: string, projectId?: string): Promise<CommissionItem[]> {
-    return await invoke<CommissionItem[]>("get_commissions", { clientId, projectId });
+  async getCommissions(
+    clientId?: string,
+    projectId?: string,
+  ): Promise<CommissionItem[]> {
+    return await invoke<CommissionItem[]>("get_commissions", {
+      clientId,
+      projectId,
+    });
   },
 
-  async createCommission(input: CreateCommissionInput): Promise<CommissionItem> {
+  async createCommission(
+    input: CreateCommissionInput,
+  ): Promise<CommissionItem> {
     return await invoke<CommissionItem>("create_commission", { input });
   },
 
@@ -93,8 +101,14 @@ export const tauriService = {
   },
 
   // Payments
-  async getPayments(clientId?: string, commissionId?: string): Promise<PaymentItem[]> {
-    return await invoke<PaymentItem[]>("get_payments", { clientId, commissionId });
+  async getPayments(
+    clientId?: string,
+    commissionId?: string,
+  ): Promise<PaymentItem[]> {
+    return await invoke<PaymentItem[]>("get_payments", {
+      clientId,
+      commissionId,
+    });
   },
 
   async createPayment(input: CreatePaymentInput): Promise<PaymentItem> {
@@ -106,8 +120,14 @@ export const tauriService = {
   },
 
   // Expenses
-  async getExpenses(categoryId?: string, projectId?: string): Promise<ExpenseItem[]> {
-    return await invoke<ExpenseItem[]>("get_expenses", { categoryId, projectId });
+  async getExpenses(
+    categoryId?: string,
+    projectId?: string,
+  ): Promise<ExpenseItem[]> {
+    return await invoke<ExpenseItem[]>("get_expenses", {
+      categoryId,
+      projectId,
+    });
   },
 
   async createExpense(input: CreateExpenseInput): Promise<ExpenseItem> {
@@ -123,7 +143,9 @@ export const tauriService = {
   },
 
   async createExpenseCategory(name: string): Promise<ExpenseCategoryItem> {
-    return await invoke<ExpenseCategoryItem>("create_expense_category", { name });
+    return await invoke<ExpenseCategoryItem>("create_expense_category", {
+      name,
+    });
   },
 
   // Invoices
@@ -145,7 +167,9 @@ export const tauriService = {
 
   // Reports
   async getFinancialReports(dateRange?: string): Promise<FinancialReportData> {
-    return await invoke<FinancialReportData>("get_financial_reports", { dateRange });
+    return await invoke<FinancialReportData>("get_financial_reports", {
+      dateRange,
+    });
   },
 
   // Global Search
@@ -154,8 +178,14 @@ export const tauriService = {
   },
 
   // Attachments
-  async getAttachments(entityType: string, entityId: string): Promise<AttachmentItem[]> {
-    return await invoke<AttachmentItem[]>("get_attachments", { entityType, entityId });
+  async getAttachments(
+    entityType: string,
+    entityId: string,
+  ): Promise<AttachmentItem[]> {
+    return await invoke<AttachmentItem[]>("get_attachments", {
+      entityType,
+      entityId,
+    });
   },
 
   async addAttachment(input: AddAttachmentInput): Promise<AttachmentItem> {

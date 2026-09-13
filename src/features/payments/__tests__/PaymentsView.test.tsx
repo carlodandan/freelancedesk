@@ -3,7 +3,11 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { PaymentsView } from "../PaymentsView";
 import { tauriService } from "../../../services/tauri";
-import { PaymentItem, ClientItem, CommissionItem } from "../../../types/entities";
+import {
+  PaymentItem,
+  ClientItem,
+  CommissionItem,
+} from "../../../types/entities";
 import { AppSettings } from "../../../types/settings";
 
 const mockSettings: AppSettings = {
@@ -111,7 +115,9 @@ describe("PaymentsView Component", () => {
     const amountInput = screen.getByPlaceholderText("1000");
     await user.type(amountInput, "500");
 
-    const submitBtns = screen.getAllByRole("button", { name: "Record Payment" });
+    const submitBtns = screen.getAllByRole("button", {
+      name: "Record Payment",
+    });
     // Click the submit button inside the modal
     await user.click(submitBtns[submitBtns.length - 1]);
 
@@ -120,7 +126,7 @@ describe("PaymentsView Component", () => {
         expect.objectContaining({
           client_id: "client-1",
           amount_cents: 50000,
-        })
+        }),
       );
     });
   });

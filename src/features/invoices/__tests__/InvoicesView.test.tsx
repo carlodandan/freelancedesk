@@ -118,7 +118,7 @@ describe("InvoicesView Component", () => {
               description: "Brand Identity Design",
             }),
           ]),
-        })
+        }),
       );
     });
   });
@@ -134,7 +134,10 @@ describe("InvoicesView Component", () => {
     fireEvent.change(statusSelect, { target: { value: "paid" } });
 
     await waitFor(() => {
-      expect(tauriService.updateInvoiceStatus).toHaveBeenCalledWith("inv-1", "paid");
+      expect(tauriService.updateInvoiceStatus).toHaveBeenCalledWith(
+        "inv-1",
+        "paid",
+      );
     });
   });
 });
