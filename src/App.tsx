@@ -56,6 +56,14 @@ export function App() {
     loadInitialData();
   }, []);
 
+  useEffect(() => {
+    if (settings?.theme && settings.theme !== "paper") {
+      document.documentElement.setAttribute("data-theme", settings.theme);
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+  }, [settings?.theme]);
+
   const refreshSummary = async () => {
     try {
       const summary = await tauriService.getDashboardSummary();

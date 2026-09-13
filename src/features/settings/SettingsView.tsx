@@ -7,10 +7,13 @@ import {
   User,
   CreditCard,
   FileCheck,
+  Palette,
 } from "lucide-react";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
+import { Select } from "../../components/ui/Select";
 import { Button } from "../../components/ui/Button";
+import { useToast } from "../../components/ui/Toast";
 import { AppSettings, AppInfo } from "../../types/settings";
 import { tauriService } from "../../services/tauri";
 
@@ -28,6 +31,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [formData, setFormData] = useState<AppSettings>(settings);
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<"general" | "invoice" | "storage">(
     "general",
   );
@@ -38,9 +42,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     try {
       await onSave(formData);
       setSavedSuccess(true);
+      showToast({
+        type: "success",
+        message: "Settings and appearance saved successfully.",
+      });
       setTimeout(() => setSavedSuccess(false), 3000);
     } catch (err) {
       console.error("Failed to save settings:", err);
+      showToast({
+        type: "danger",
+        message: "Failed to save settings.",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -202,22 +214,99 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   placeholder="PHP"
                   hint="e.g. PHP, USD, EUR"
                 />
-                <div>
-                  <label className="block text-xs font-semibold text-[#57534E] uppercase tracking-wider mb-1.5">
-                    Date Format
-                  </label>
-                  <select
-                    value={formData.date_format}
-                    onChange={(e) =>
-                      setFormData({ ...formData, date_format: e.target.value })
-                    }
-                    className="w-full rounded-md border border-[#E5E0D5] bg-white px-3 py-1.5 text-sm text-[#1C1917] focus:outline-none focus:ring-2 focus:ring-[#854D0E]/20 focus:border-[#854D0E]"
-                  >
-                    <option value="YYYY-MM-DD">YYYY-MM-DD (ISO)</option>
-                    <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                    <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                  </select>
+                <Select
+                  label="Date Format"
+                  value={formData.date_format}
+                  onChange={(e) =>
+                    setFormData({ ...formData, date_format: e.target.value })
+                  }
+                  options={[
+                    { value: "YYYY-MM-DD", label: "YYYY-MM-DD (ISO)" },
+                    { value: "MM/DD/YYYY", label: "MM/DD/YYYY" },
+                    { value: "DD/MM/YYYY", label: "DD/MM/YYYY" },
+                  ]}
+                />
+              </div>
+            </Card>
+
+            <Card
+              header={
+                <div className="flex items-center gap-2">
+                  <Palette size={16} className="text-[var(--accent)]" />
+                  <span>Ledger Theme & Visual Appearance</span>
                 </div>
+              }
+            >
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  {
+                    id: "paper",
+                    name: "Warm Paper",
+                    desc: "Classic warm cream canvas with sepia ledger lines and bronze amber accents.",
+                    dotBg: "bg-[#FAF8F5]",
+                    dotBorder: "border-[#E5E0D5]",
+                    dotAccent: "bg-[#854D0E]",
+                  },
+                  {
+                    id: "clean",
+                    name: "Clean Slate",
+                    desc: "Modern crisp neutral canvas with cool slate borders and deep navy accents.",
+                    dotBg: "bg-[#F8FAFC]",
+                    dotBorder: "border-[#E2E8F0]",
+                    dotAccent: "bg-[#1E3A5F]",
+                  },
+                  {
+                    id: "dark",
+                    name: "Obsidian Dark",
+                    desc: "Low-light high-contrast dark ledger with warm luminous amber accents.",
+                    dotBg: "bg-[#141416]",
+                    dotBorder: "border-[#2E2E36]",
+                    dotAccent: "bg-[#D97706]",
+                  },
+                ].map((themeOpt) => {
+                  const isSelected = (formData.theme || "paper") === themeOpt.id;
+                  return (
+                    <button
+                      key={themeOpt.id}
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, theme: themeOpt.id });
+                        if (themeOpt.id === "paper") {
+                          document.documentElement.removeAttribute("data-theme");
+                        } else {
+                          document.documentElement.setAttribute("data-theme", themeOpt.id);
+                        }
+                      }}
+                      className={`p-4 rounded-lg border text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? "border-[var(--accent)] ring-2 ring-[var(--accent)]/20 shadow-xs bg-[var(--bg-surface)]"
+                          : "border-[var(--border-ledger)] hover:border-[var(--text-muted)] bg-[var(--bg-surface)]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold text-[var(--text-primary)]">
+                          {themeOpt.name}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`w-3.5 h-3.5 rounded-full ${themeOpt.dotBg} border ${themeOpt.dotBorder}`}
+                          />
+                          <span
+                            className={`w-3.5 h-3.5 rounded-full ${themeOpt.dotAccent}`}
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                        {themeOpt.desc}
+                      </p>
+                      {isSelected && (
+                        <span className="inline-block mt-2.5 text-[10px] font-mono font-bold uppercase text-[var(--accent)]">
+                          Active Theme
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </Card>
           </div>

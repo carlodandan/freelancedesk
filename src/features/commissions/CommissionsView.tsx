@@ -10,6 +10,9 @@ import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/Badge";
 import { Modal } from "../../components/ui/Modal";
 import { Input } from "../../components/ui/Input";
+import { Select } from "../../components/ui/Select";
+import { Textarea } from "../../components/ui/Textarea";
+import { useToast } from "../../components/ui/Toast";
 import { EmptyState } from "../../components/ui/EmptyState";
 import {
   CommissionItem,
@@ -38,6 +41,7 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { showToast } = useToast();
 
   // Form state
   const [clientId, setClientId] = useState("");
@@ -138,9 +142,11 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
       await tauriService.createCommission(input);
       setIsCreateModalOpen(false);
       resetForm();
+      showToast("Commission created successfully", "success");
       await loadData();
     } catch (err) {
       console.error("Failed to create commission:", err);
+      showToast("Failed to create commission", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -149,9 +155,11 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     try {
       await tauriService.updateCommissionStatus(id, newStatus);
+      showToast("Commission status updated", "info");
       await loadData();
     } catch (err) {
       console.error("Failed to update status:", err);
+      showToast("Failed to update status", "error");
     }
   };
 
@@ -159,9 +167,11 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
     if (window.confirm("Archive or delete this commission?")) {
       try {
         await tauriService.deleteCommission(id);
+        showToast("Commission archived", "info");
         await loadData();
       } catch (err) {
         console.error("Failed to delete commission:", err);
+        showToast("Failed to archive commission", "error");
       }
     }
   };
@@ -201,12 +211,12 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between pb-2 border-b border-[#E5E0D5]">
+      <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle)]">
         <div>
-          <h2 className="text-xl font-semibold text-[#1C1917] tracking-tight">
+          <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">
             Commissions & Job Orders
           </h2>
-          <p className="text-xs text-[#78716C] mt-0.5">
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">
             Track individual jobs, custom line items, upfront deposits, and balances.
           </p>
         </div>
@@ -224,20 +234,21 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="relative w-72">
-            <Search size={14} className="absolute left-3 top-2.5 text-[#8C867A]" />
+            <Search size={14} className="absolute left-3 top-2.5 text-[var(--text-muted)]" />
             <input
               type="text"
               placeholder="Search by job title or client..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 rounded-md border border-[#E5E0D5] bg-white text-xs text-[#1C1917] placeholder:text-[#A8A29E] focus:outline-none focus:ring-2 focus:ring-[#854D0E]/20"
+              className="w-full pl-9 pr-3 py-1.5 rounded-md border border-[var(--border-subtle)] bg-[var(--surface-card)] text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
             />
           </div>
 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-md border border-[#E5E0D5] bg-white px-3 py-1.5 text-xs text-[#1C1917] focus:outline-none"
+            className="rounded-md border border-[var(--border-subtle)] bg-[var(--surface-card)] px-3 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 cursor-pointer"
+            aria-label="Filter commissions by status"
           >
             <option value="all">All Statuses</option>
             <option value="inquiry">Inquiry</option>
@@ -250,18 +261,18 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
             <option value="cancelled">Cancelled</option>
           </select>
         </div>
-        <div className="text-xs text-[#78716C]">
-          Showing <span className="font-semibold text-[#1C1917]">{filteredCommissions.length}</span> commissions
+        <div className="text-xs text-[var(--text-muted)]">
+          Showing <span className="font-semibold text-[var(--text-primary)]">{filteredCommissions.length}</span> commissions
         </div>
       </div>
 
       {/* Commissions Table */}
       {filteredCommissions.length > 0 ? (
         <Card noPadding>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto select-text">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-[#E5E0D5] bg-[#FAF8F5] text-[#57534E] font-semibold uppercase tracking-wider">
+                <tr className="border-b border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text-secondary)] font-semibold uppercase tracking-wider">
                   <th className="px-5 py-3">Commission Job</th>
                   <th className="px-4 py-3">Client</th>
                   <th className="px-4 py-3 text-right">Price</th>
@@ -272,26 +283,26 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
                   <th className="px-5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#ECE8DE]">
+              <tbody className="divide-y divide-[var(--border-subtle)]">
                 {filteredCommissions.map((comm) => (
-                  <tr key={comm.id} className="hover:bg-[#FAF8F5] transition-colors">
+                  <tr key={comm.id} className="hover:bg-[var(--surface-muted)] transition-colors">
                     <td className="px-5 py-3.5">
-                      <div className="font-semibold text-[#1C1917]">{comm.title}</div>
-                      <div className="text-[11px] text-[#78716C]">
+                      <div className="font-semibold text-[var(--text-primary)]">{comm.title}</div>
+                      <div className="text-[11px] text-[var(--text-muted)]">
                         {comm.commission_type || "Standard"}
                         {comm.project_name ? ` • ${comm.project_name}` : ""}
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 font-medium text-[#1C1917]">
+                    <td className="px-4 py-3.5 font-medium text-[var(--text-primary)]">
                       {comm.client_name}
                     </td>
-                    <td className="px-4 py-3.5 text-right font-mono tabular-nums text-[#1C1917]">
+                    <td className="px-4 py-3.5 text-right font-mono tabular-nums text-[var(--text-primary)] font-semibold">
                       {formatCents(comm.price_cents, currencySymbol)}
                     </td>
-                    <td className="px-4 py-3.5 text-right font-mono tabular-nums text-[#854D0E] font-medium">
+                    <td className="px-4 py-3.5 text-right font-mono tabular-nums text-[var(--primary)] font-medium">
                       {formatCents(comm.deposit_amount_cents, currencySymbol)}
                     </td>
-                    <td className="px-4 py-3.5 text-right font-mono tabular-nums font-bold text-[#B45309]">
+                    <td className="px-4 py-3.5 text-right font-mono tabular-nums font-bold text-[var(--color-warning)]">
                       {formatCents(comm.remaining_balance_cents, currencySymbol)}
                     </td>
                     <td className="px-4 py-3.5 text-center">
@@ -301,7 +312,8 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
                       <select
                         value={comm.status}
                         onChange={(e) => handleUpdateStatus(comm.id, e.target.value)}
-                        className="text-[11px] font-semibold rounded px-2 py-0.5 border border-[#E5E0D5] bg-[#FAF8F5] text-[#1C1917] focus:outline-none"
+                        className="text-[11px] font-semibold rounded px-2 py-0.5 border border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text-primary)] focus:outline-none cursor-pointer"
+                        aria-label={`Update status for ${comm.title}`}
                       >
                         <option value="inquiry">Inquiry</option>
                         <option value="quoted">Quoted</option>
@@ -316,8 +328,9 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
                     <td className="px-5 py-3.5 text-right">
                       <button
                         onClick={() => handleDeleteCommission(comm.id)}
-                        className="p-1 rounded text-[#8C867A] hover:text-[#DC2626] hover:bg-[#FEF2F2]"
+                        className="p-1 rounded text-[var(--text-muted)] hover:text-red-600 hover:bg-red-500/10 transition-colors"
                         title="Delete / Cancel Commission"
+                        aria-label={`Delete commission ${comm.title}`}
                       >
                         <Trash2 size={15} />
                       </button>
@@ -355,41 +368,31 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
       >
         <form onSubmit={handleCreateCommission} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-[#57534E] uppercase tracking-wider mb-1.5">
-                Client *
-              </label>
-              <select
-                value={clientId}
-                onChange={(e) => setClientId(e.target.value)}
-                className="w-full rounded-md border border-[#E5E0D5] bg-white px-3 py-1.5 text-xs text-[#1C1917] focus:outline-none"
-                required
-              >
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              label="Client *"
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+              required
+            >
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
 
-            <div>
-              <label className="block text-xs font-semibold text-[#57534E] uppercase tracking-wider mb-1.5">
-                Related Project (Optional)
-              </label>
-              <select
-                value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
-                className="w-full rounded-md border border-[#E5E0D5] bg-white px-3 py-1.5 text-xs text-[#1C1917] focus:outline-none"
-              >
-                <option value="">None (Stand-alone Commission)</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.client_name})
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              label="Related Project (Optional)"
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+            >
+              <option value="">None (Stand-alone Commission)</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.client_name})
+                </option>
+              ))}
+            </Select>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
@@ -412,15 +415,15 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
           </div>
 
           {/* Pricing & Deposit Section */}
-          <div className="p-4 rounded-lg bg-[#FAF8F5] border border-[#ECE8DE] space-y-3">
+          <div className="p-4 rounded-lg bg-[var(--surface-muted)] border border-[var(--border-subtle)] space-y-3">
             <div className="flex items-center justify-between">
-              <div className="text-xs font-semibold text-[#1C1917]">
+              <div className="text-xs font-semibold text-[var(--text-primary)]">
                 Pricing & Deposit Schedule
               </div>
               <button
                 type="button"
                 onClick={addLineItem}
-                className="text-xs text-[#854D0E] font-medium hover:underline flex items-center gap-1"
+                className="text-xs text-[var(--primary)] font-medium hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <Plus size={12} />
                 <span>Add Line Item</span>
@@ -435,7 +438,7 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
                   placeholder="Item description (e.g. Commercial License)"
                   value={item.description}
                   onChange={(e) => updateLineItem(idx, "description", e.target.value)}
-                  className="flex-1 rounded border border-[#E5E0D5] px-2 py-1 text-xs bg-white"
+                  className="flex-1 rounded border border-[var(--border-subtle)] px-2.5 py-1.5 text-xs bg-[var(--surface-card)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
                 />
                 <input
                   type="number"
@@ -445,7 +448,7 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
                   onChange={(e) =>
                     updateLineItem(idx, "quantity", parseInt(e.target.value, 10) || 1)
                   }
-                  className="w-14 rounded border border-[#E5E0D5] px-2 py-1 text-xs bg-white text-center"
+                  className="w-14 rounded border border-[var(--border-subtle)] px-2 py-1.5 text-xs bg-[var(--surface-card)] text-[var(--text-primary)] text-center font-mono focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
                 />
                 <input
                   type="number"
@@ -458,25 +461,27 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
                       Math.round(parseFloat(e.target.value || "0") * 100)
                     )
                   }
-                  className="w-24 rounded border border-[#E5E0D5] px-2 py-1 text-xs bg-white text-right font-mono"
+                  className="w-24 rounded border border-[var(--border-subtle)] px-2.5 py-1.5 text-xs bg-[var(--surface-card)] text-[var(--text-primary)] text-right font-mono focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
                 />
                 <button
                   type="button"
                   onClick={() => removeLineItem(idx)}
-                  className="p-1 text-[#8C867A] hover:text-[#DC2626]"
+                  className="p-1 text-[var(--text-muted)] hover:text-red-600 transition-colors"
+                  aria-label="Remove line item"
                 >
                   <Trash2 size={13} />
                 </button>
               </div>
             ))}
 
-            <div className="grid grid-cols-3 gap-3 pt-1 border-t border-[#E5E0D5]">
+            <div className="grid grid-cols-3 gap-3 pt-2 border-t border-[var(--border-subtle)]">
               <Input
                 label={`Total Price (${currencySymbol}) *`}
                 value={priceInput}
                 onChange={(e) => setPriceInput(e.target.value)}
                 placeholder="2000"
                 required
+                prefixIcon={<span className="text-xs font-semibold text-[var(--text-muted)]">{currencySymbol}</span>}
               />
               <Input
                 label="Deposit (%)"
@@ -487,10 +492,10 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
                 onChange={(e) => setDepositPct(parseInt(e.target.value, 10) || 0)}
               />
               <div>
-                <label className="block text-xs font-semibold text-[#57534E] uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5 select-none">
                   Calculated Deposit
                 </label>
-                <div className="py-2 text-xs font-mono font-bold text-[#854D0E]">
+                <div className="py-2 text-xs font-mono font-bold text-[var(--primary)]">
                   {formatCents(calculatedDeposit.depositCents, currencySymbol)}
                 </div>
               </div>
@@ -512,18 +517,13 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-[#57534E] uppercase tracking-wider mb-1.5">
-              Commission Notes / Specs
-            </label>
-            <textarea
-              rows={2}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Character details, canvas resolution, delivery formats..."
-              className="w-full rounded-md border border-[#E5E0D5] bg-white p-3 text-xs text-[#1C1917] focus:outline-none"
-            />
-          </div>
+          <Textarea
+            label="Commission Notes / Specs"
+            rows={2}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Character details, canvas resolution, delivery formats..."
+          />
 
           <div className="flex justify-end gap-2 pt-2">
             <Button

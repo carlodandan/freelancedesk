@@ -25,43 +25,53 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const inputId =
       id || (label ? label.toLowerCase().replace(/\s+/g, "-") : undefined);
 
+    const descId = error || hint ? `${inputId}-desc` : undefined;
+
     return (
       <div className="w-full">
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-xs font-semibold text-[#57534E] uppercase tracking-wider mb-1.5"
+            className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5 select-none"
           >
             {label}
           </label>
         )}
         <div className="relative flex items-center">
           {prefixIcon && (
-            <div className="absolute left-3 text-[#8C867A] pointer-events-none flex items-center">
+            <div className="absolute left-3 text-[var(--text-muted)] pointer-events-none flex items-center select-none">
               {prefixIcon}
             </div>
           )}
           <input
             id={inputId}
             ref={ref}
-            className={`w-full rounded-md border bg-white px-3 py-1.5 text-sm text-[#1C1917] transition-colors placeholder:text-[#A8A29E] focus:outline-none focus:ring-2 focus:ring-[#854D0E]/20 focus:border-[#854D0E] disabled:bg-[#F5F2EB] disabled:cursor-not-allowed ${
+            aria-invalid={!!error}
+            aria-describedby={descId}
+            className={`w-full rounded-md border bg-[var(--bg-surface)] px-3 py-1.5 text-sm text-[var(--text-primary)] transition-colors placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/25 focus:border-[var(--accent)] disabled:bg-[var(--bg-surface-subtle)] disabled:cursor-not-allowed ${
               prefixIcon ? "pl-9" : ""
             } ${suffixIcon ? "pr-9" : ""} ${
               error
-                ? "border-[#EF4444] focus:ring-[#EF4444]/20 focus:border-[#EF4444]"
-                : "border-[#E5E0D5]"
+                ? "border-[#DC2626] focus:ring-[#DC2626]/20 focus:border-[#DC2626]"
+                : "border-[var(--border-ledger)]"
             } ${className}`}
             {...props}
           />
           {suffixIcon && (
-            <div className="absolute right-3 text-[#8C867A] pointer-events-none flex items-center">
+            <div className="absolute right-3 text-[var(--text-muted)] pointer-events-none flex items-center select-none">
               {suffixIcon}
             </div>
           )}
         </div>
-        {error && <p className="mt-1 text-xs text-[#DC2626]">{error}</p>}
+        {error && (
+          <p id={descId} className="mt-1 text-xs text-[#DC2626]">
+            {error}
+          </p>
+        )}
         {hint && !error && (
-          <p className="mt-1 text-xs text-[#8C867A]">{hint}</p>
+          <p id={descId} className="mt-1 text-xs text-[var(--text-muted)]">
+            {hint}
+          </p>
         )}
       </div>
     );

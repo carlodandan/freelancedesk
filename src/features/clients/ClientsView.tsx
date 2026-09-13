@@ -13,6 +13,8 @@ import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/Badge";
 import { Modal } from "../../components/ui/Modal";
 import { Input } from "../../components/ui/Input";
+import { Textarea } from "../../components/ui/Textarea";
+import { useToast } from "../../components/ui/Toast";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ClientItem, CreateClientInput } from "../../types/entities";
 import { tauriService } from "../../services/tauri";
@@ -31,6 +33,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<ClientItem | null>(null);
+  const { showToast } = useToast();
 
   // Form state
   const [name, setName] = useState("");
@@ -75,10 +78,18 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
       };
       await tauriService.createClient(input);
       setIsCreateModalOpen(false);
+      showToast({
+        type: "success",
+        message: `Client "${name.trim()}" registered.`,
+      });
       resetForm();
       await loadClients();
     } catch (err) {
       console.error("Failed to create client:", err);
+      showToast({
+        type: "danger",
+        message: "Failed to create client.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -89,9 +100,17 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
       try {
         await tauriService.deleteClient(id);
         if (selectedClient?.id === id) setSelectedClient(null);
+        showToast({
+          type: "info",
+          message: "Client record removed.",
+        });
         await loadClients();
       } catch (err) {
         console.error("Failed to delete client:", err);
+        showToast({
+          type: "danger",
+          message: "Failed to delete client.",
+        });
       }
     }
   };
@@ -158,7 +177,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-[#E5E0D5] bg-[#FAF8F5] text-[#57534E] font-semibold uppercase tracking-wider">
+                <tr className="border-b border-[var(--border-ledger)] bg-[var(--bg-surface-subtle)] text-[var(--text-secondary)] font-semibold uppercase tracking-wider select-none">
                   <th className="px-5 py-3">Client Name</th>
                   <th className="px-4 py-3">Contact</th>
                   <th className="px-4 py-3 text-right">Total Billed</th>
@@ -168,30 +187,34 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                   <th className="px-5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#ECE8DE]">
+              <tbody className="divide-y divide-[var(--border-ledger-subtle)]">
                 {filteredClients.map((client) => (
-                  <tr key={client.id} className="hover:bg-[#FAF8F5] transition-colors">
+                  <tr
+                    key={client.id}
+                    onClick={() => setSelectedClient(client)}
+                    className="hover:bg-[var(--bg-surface-subtle)] transition-colors cursor-pointer group"
+                  >
                     <td className="px-5 py-3.5">
-                      <div className="font-semibold text-[#1C1917]">{client.name}</div>
+                      <div className="font-semibold text-[var(--text-primary)]">{client.name}</div>
                       {client.company_name && (
-                        <div className="text-[11px] text-[#78716C]">{client.company_name}</div>
+                        <div className="text-[11px] text-[var(--text-secondary)]">{client.company_name}</div>
                       )}
                     </td>
-                    <td className="px-4 py-3.5 text-[#57534E]">
+                    <td className="px-4 py-3.5 text-[var(--text-secondary)]">
                       {client.email && (
                         <div className="flex items-center gap-1.5">
-                          <Mail size={12} className="text-[#8C867A]" />
+                          <Mail size={12} className="text-[var(--text-muted)]" />
                           <span>{client.email}</span>
                         </div>
                       )}
                       {client.phone && (
-                        <div className="flex items-center gap-1.5 text-[11px] text-[#78716C] mt-0.5">
-                          <Phone size={12} className="text-[#8C867A]" />
+                        <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] mt-0.5">
+                          <Phone size={12} className="text-[var(--text-muted)]" />
                           <span>{client.phone}</span>
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-3.5 text-right font-mono tabular-nums text-[#1C1917]">
+                    <td className="px-4 py-3.5 text-right font-mono tabular-nums text-[var(--text-primary)]">
                       {formatCents(client.total_billed_cents, currencySymbol)}
                     </td>
                     <td className="px-4 py-3.5 text-right font-mono tabular-nums text-[#166534] font-medium">
@@ -214,19 +237,21 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                         {client.status}
                       </Badge>
                     </td>
-                    <td className="px-5 py-3.5 text-right">
+                    <td className="px-5 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => setSelectedClient(client)}
-                          className="p-1 rounded text-[#57534E] hover:text-[#1C1917] hover:bg-[#EFEBE4]"
+                          className="p-1.5 rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-subtle)] cursor-pointer"
                           title="View Client Details"
+                          aria-label={`View ${client.name} details`}
                         >
                           <Eye size={15} />
                         </button>
                         <button
                           onClick={() => handleDeleteClient(client.id)}
-                          className="p-1 rounded text-[#8C867A] hover:text-[#DC2626] hover:bg-[#FEF2F2]"
+                          className="p-1.5 rounded text-[var(--text-muted)] hover:text-[#DC2626] hover:bg-[#FEF2F2] cursor-pointer"
                           title="Delete / Archive"
+                          aria-label={`Delete ${client.name}`}
                         >
                           <Trash2 size={15} />
                         </button>
@@ -304,18 +329,13 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
             onChange={(e) => setAddress(e.target.value)}
             placeholder="Makati City, Metro Manila"
           />
-          <div>
-            <label className="block text-xs font-semibold text-[#57534E] uppercase tracking-wider mb-1.5">
-              Client Notes
-            </label>
-            <textarea
-              rows={3}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Special instructions, preferences, timezone, rate agreements..."
-              className="w-full rounded-md border border-[#E5E0D5] bg-white p-3 text-xs text-[#1C1917] focus:outline-none focus:ring-2 focus:ring-[#854D0E]/20 focus:border-[#854D0E]"
-            />
-          </div>
+          <Textarea
+            label="Client Notes"
+            rows={3}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Special instructions, preferences, timezone, rate agreements..."
+          />
 
           <div className="flex justify-end gap-2 pt-2">
             <Button

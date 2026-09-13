@@ -4,6 +4,9 @@ import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Modal";
 import { Input } from "../../components/ui/Input";
+import { Select } from "../../components/ui/Select";
+import { Textarea } from "../../components/ui/Textarea";
+import { useToast } from "../../components/ui/Toast";
 import { EmptyState } from "../../components/ui/EmptyState";
 import {
   PaymentItem,
@@ -31,6 +34,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
+  const { showToast } = useToast();
 
   // Form state
   const [clientId, setClientId] = useState("");
@@ -59,7 +63,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
         setClientId(clientData[0].id);
       }
     } catch (err) {
-      console.error("Failed to load payments:", err);
+      console.error("Failed to load payment data:", err);
     } finally {
       setIsLoading(false);
     }
@@ -76,10 +80,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     const comm = commissions.find((c) => c.id === commId);
     if (comm) {
       setClientId(comm.client_id);
-      // If remaining balance exists, suggest it or suggest deposit
-      if (comm.payment_status === "unpaid" && comm.deposit_amount_cents > 0) {
-        setAmountInput((comm.deposit_amount_cents / 100).toString());
-      } else if (comm.remaining_balance_cents > 0) {
+      if (comm.remaining_balance_cents > 0) {
         setAmountInput((comm.remaining_balance_cents / 100).toString());
       }
     }
@@ -107,16 +108,30 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
       resetForm();
       await loadData();
 
+      const comm = commissions.find((c) => c.id === commissionId);
+      const remaining = comm
+        ? Math.max(0, comm.remaining_balance_cents - amountCents)
+        : undefined;
+
+      showToast({
+        type: "success",
+        message: `Payment of ${formatCents(amountCents, currencySymbol)} recorded!`,
+        action: {
+          label: "Download Receipt",
+          onClick: () => generateReceiptPdf(newPayment, settings, comm?.title, remaining, true),
+        },
+      });
+
       // Offer immediate PDF receipt download
       if (window.confirm("Payment recorded! Would you like to download the official PDF receipt?")) {
-        const comm = commissions.find((c) => c.id === commissionId);
-        const remaining = comm
-          ? Math.max(0, comm.remaining_balance_cents - amountCents)
-          : undefined;
         generateReceiptPdf(newPayment, settings, comm?.title, remaining, true);
       }
     } catch (err) {
       console.error("Failed to record payment:", err);
+      showToast({
+        type: "danger",
+        message: "Failed to record payment.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -126,6 +141,10 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     if (window.confirm("Delete this payment record? Commission balances will adjust.")) {
       try {
         await tauriService.deletePayment(id);
+        showToast({
+          type: "info",
+          message: "Payment record deleted.",
+        });
         await loadData();
       } catch (err) {
         console.error("Failed to delete payment:", err);
@@ -153,12 +172,12 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between pb-2 border-b border-[#E5E0D5]">
+      <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle)]">
         <div>
-          <h2 className="text-xl font-semibold text-[#1C1917] tracking-tight">
+          <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">
             Payments Ledger
           </h2>
-          <p className="text-xs text-[#78716C] mt-0.5">
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">
             Record client deposits, final balances, and export verified PDF receipts.
           </p>
         </div>
@@ -174,27 +193,27 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
 
       {/* Financial Summary Strip */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white border border-[#E5E0D5] rounded-lg p-4">
-          <div className="text-[11px] font-semibold uppercase text-[#78716C]">
+        <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-lg p-4">
+          <div className="text-[11px] font-semibold uppercase text-[var(--text-muted)] tracking-wider">
             Total Collected
           </div>
-          <div className="text-xl font-bold font-mono text-[#166534] mt-1 tabular-nums">
+          <div className="text-xl font-bold font-mono text-[var(--color-success)] mt-1 tabular-nums">
             {formatCents(totalCollectedCents, currencySymbol)}
           </div>
         </div>
-        <div className="bg-white border border-[#E5E0D5] rounded-lg p-4">
-          <div className="text-[11px] font-semibold uppercase text-[#78716C]">
+        <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-lg p-4">
+          <div className="text-[11px] font-semibold uppercase text-[var(--text-muted)] tracking-wider">
             Logged Transactions
           </div>
-          <div className="text-xl font-bold font-mono text-[#1C1917] mt-1 tabular-nums">
+          <div className="text-xl font-bold font-mono text-[var(--text-primary)] mt-1 tabular-nums">
             {payments.length}
           </div>
         </div>
-        <div className="bg-white border border-[#E5E0D5] rounded-lg p-4">
-          <div className="text-[11px] font-semibold uppercase text-[#78716C]">
+        <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-lg p-4">
+          <div className="text-[11px] font-semibold uppercase text-[var(--text-muted)] tracking-wider">
             Preferred Method
           </div>
-          <div className="text-base font-semibold text-[#1C1917] mt-1">
+          <div className="text-base font-semibold text-[var(--text-primary)] mt-1">
             Bank Transfer / GCash
           </div>
         </div>
@@ -203,27 +222,27 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
       {/* Filter */}
       <div className="flex items-center justify-between gap-4">
         <div className="relative w-80">
-          <Search size={14} className="absolute left-3 top-2.5 text-[#8C867A]" />
+          <Search size={14} className="absolute left-3 top-2.5 text-[var(--text-muted)]" />
           <input
             type="text"
             placeholder="Search payments by client, reference, or receipt..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 rounded-md border border-[#E5E0D5] bg-white text-xs text-[#1C1917] placeholder:text-[#A8A29E] focus:outline-none focus:ring-2 focus:ring-[#854D0E]/20"
+            className="w-full pl-9 pr-3 py-1.5 rounded-md border border-[var(--border-subtle)] bg-[var(--surface-card)] text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
           />
         </div>
-        <div className="text-xs text-[#78716C]">
-          Showing <span className="font-semibold text-[#1C1917]">{filteredPayments.length}</span> payments
+        <div className="text-xs text-[var(--text-muted)]">
+          Showing <span className="font-semibold text-[var(--text-primary)]">{filteredPayments.length}</span> payments
         </div>
       </div>
 
       {/* Payments Table */}
       {filteredPayments.length > 0 ? (
         <Card noPadding>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto select-text">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-[#E5E0D5] bg-[#FAF8F5] text-[#57534E] font-semibold uppercase tracking-wider">
+                <tr className="border-b border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text-secondary)] font-semibold uppercase tracking-wider">
                   <th className="px-5 py-3">Receipt #</th>
                   <th className="px-4 py-3">Client</th>
                   <th className="px-4 py-3">Commission / Job</th>
@@ -233,43 +252,45 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                   <th className="px-5 py-3 text-right">Receipt PDF</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#ECE8DE]">
+              <tbody className="divide-y divide-[var(--border-subtle)]">
                 {filteredPayments.map((p) => (
-                  <tr key={p.id} className="hover:bg-[#FAF8F5] transition-colors">
-                    <td className="px-5 py-3.5 font-mono text-[11px] font-medium text-[#854D0E]">
+                  <tr key={p.id} className="hover:bg-[var(--surface-muted)] transition-colors">
+                    <td className="px-5 py-3.5 font-mono text-[11px] font-medium text-[var(--primary)]">
                       {p.receipt_number || p.id.slice(0, 8)}
                     </td>
-                    <td className="px-4 py-3.5 font-semibold text-[#1C1917]">
+                    <td className="px-4 py-3.5 font-semibold text-[var(--text-primary)]">
                       {p.client_name}
                     </td>
-                    <td className="px-4 py-3.5 text-[#57534E]">
+                    <td className="px-4 py-3.5 text-[var(--text-secondary)]">
                       {p.commission_title || "Direct Freelance Services"}
                     </td>
-                    <td className="px-4 py-3.5 font-mono text-[#57534E]">
+                    <td className="px-4 py-3.5 font-mono text-[var(--text-secondary)]">
                       {p.payment_date}
                     </td>
                     <td className="px-4 py-3.5">
-                      <span className="px-2 py-0.5 rounded bg-[#F4F1EA] text-[#57534E] font-medium">
+                      <span className="px-2 py-0.5 rounded bg-[var(--surface-muted)] text-[var(--text-secondary)] font-medium">
                         {p.payment_method}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 text-right font-mono tabular-nums font-bold text-[#166534]">
+                    <td className="px-4 py-3.5 text-right font-mono tabular-nums font-bold text-[var(--color-success)]">
                       +{formatCents(p.amount_cents, currencySymbol)}
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => generateReceiptPdf(p, settings, p.commission_title || undefined, undefined, true)}
-                          className="p-1 rounded text-[#854D0E] hover:text-[#713F12] hover:bg-[#F4F1EA] flex items-center gap-1 text-[11px] font-medium"
+                          className="p-1 rounded text-[var(--primary)] hover:text-[var(--primary-hover)] hover:bg-[var(--surface-muted)] flex items-center gap-1 text-[11px] font-medium transition-colors"
                           title="Download Official Receipt PDF"
+                          aria-label={`Download receipt PDF for ${p.receipt_number || p.client_name}`}
                         >
                           <FileDown size={14} />
                           <span>PDF</span>
                         </button>
                         <button
                           onClick={() => handleDeletePayment(p.id)}
-                          className="p-1 rounded text-[#8C867A] hover:text-[#DC2626] hover:bg-[#FEF2F2]"
+                          className="p-1 rounded text-[var(--text-muted)] hover:text-red-600 hover:bg-red-500/10 transition-colors"
                           title="Delete Payment"
+                          aria-label={`Delete payment ${p.receipt_number || p.id}`}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -307,41 +328,31 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
         maxWidth="md"
       >
         <form onSubmit={handleCreatePayment} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-[#57534E] uppercase tracking-wider mb-1.5">
-              Related Commission (Optional)
-            </label>
-            <select
-              value={commissionId}
-              onChange={(e) => handleCommissionSelect(e.target.value)}
-              className="w-full rounded-md border border-[#E5E0D5] bg-white px-3 py-1.5 text-xs text-[#1C1917] focus:outline-none"
-            >
-              <option value="">None (General Client Payment)</option>
-              {commissions.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.title} — {c.client_name} (Remaining: {formatCents(c.remaining_balance_cents, currencySymbol)})
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            label="Related Commission (Optional)"
+            value={commissionId}
+            onChange={(e) => handleCommissionSelect(e.target.value)}
+          >
+            <option value="">None (General Client Payment)</option>
+            {commissions.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.title} — {c.client_name} (Remaining: {formatCents(c.remaining_balance_cents, currencySymbol)})
+              </option>
+            ))}
+          </Select>
 
-          <div>
-            <label className="block text-xs font-semibold text-[#57534E] uppercase tracking-wider mb-1.5">
-              Client *
-            </label>
-            <select
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-              className="w-full rounded-md border border-[#E5E0D5] bg-white px-3 py-1.5 text-xs text-[#1C1917] focus:outline-none"
-              required
-            >
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            label="Client *"
+            value={clientId}
+            onChange={(e) => setClientId(e.target.value)}
+            required
+          >
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </Select>
 
           <div className="grid grid-cols-2 gap-3">
             <Input
@@ -351,6 +362,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
               placeholder="1000"
               required
               autoFocus
+              prefixIcon={<span className="text-xs font-semibold text-[var(--text-muted)]">{currencySymbol}</span>}
             />
             <Input
               label="Payment Date *"
@@ -362,23 +374,18 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-[#57534E] uppercase tracking-wider mb-1.5">
-                Payment Method *
-              </label>
-              <select
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full rounded-md border border-[#E5E0D5] bg-white px-3 py-1.5 text-xs text-[#1C1917] focus:outline-none"
-              >
-                <option value="Bank Transfer">Bank Transfer</option>
-                <option value="GCash">GCash</option>
-                <option value="Maya">Maya</option>
-                <option value="Cash">Cash</option>
-                <option value="PayPal">PayPal</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
+            <Select
+              label="Payment Method *"
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+            >
+              <option value="Bank Transfer">Bank Transfer</option>
+              <option value="GCash">GCash</option>
+              <option value="Maya">Maya</option>
+              <option value="Cash">Cash</option>
+              <option value="PayPal">PayPal</option>
+              <option value="Other">Other</option>
+            </Select>
             <Input
               label="Reference / Transaction #"
               value={referenceNumber}
@@ -387,18 +394,13 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-[#57534E] uppercase tracking-wider mb-1.5">
-              Payment Notes
-            </label>
-            <textarea
-              rows={2}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g. Initial 50% deposit for character concept"
-              className="w-full rounded-md border border-[#E5E0D5] bg-white p-3 text-xs text-[#1C1917] focus:outline-none"
-            />
-          </div>
+          <Textarea
+            label="Payment Notes"
+            rows={2}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="e.g. Initial 50% deposit for character concept"
+          />
 
           <div className="flex justify-end gap-2 pt-2">
             <Button

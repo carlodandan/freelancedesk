@@ -4,6 +4,9 @@ import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Modal";
 import { Input } from "../../components/ui/Input";
+import { Select } from "../../components/ui/Select";
+import { Textarea } from "../../components/ui/Textarea";
+import { useToast } from "../../components/ui/Toast";
 import { EmptyState } from "../../components/ui/EmptyState";
 import {
   ExpenseItem,
@@ -27,6 +30,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ currencySymbol }) =>
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
+  const { showToast } = useToast();
 
   // Form state
   const [categoryId, setCategoryId] = useState("");
@@ -84,9 +88,11 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ currencySymbol }) =>
       await tauriService.createExpense(input);
       setIsAddModalOpen(false);
       resetForm();
+      showToast("Expense recorded successfully", "success");
       await loadData();
     } catch (err) {
       console.error("Failed to add expense:", err);
+      showToast("Failed to record expense", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -102,8 +108,10 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ currencySymbol }) =>
       setCategoryId(cat.id);
       setNewCategoryName("");
       setIsNewCategoryModalOpen(false);
+      showToast(`Category "${cat.name}" added`, "success");
     } catch (err) {
       console.error("Failed to add category:", err);
+      showToast("Failed to add category", "error");
     }
   };
 
@@ -111,9 +119,11 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ currencySymbol }) =>
     if (window.confirm("Delete this expense record?")) {
       try {
         await tauriService.deleteExpense(id);
+        showToast("Expense record deleted", "info");
         await loadData();
       } catch (err) {
         console.error("Failed to delete expense:", err);
+        showToast("Failed to delete expense", "error");
       }
     }
   };
@@ -136,12 +146,12 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ currencySymbol }) =>
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between pb-2 border-b border-[#E5E0D5]">
+      <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle)]">
         <div>
-          <h2 className="text-xl font-semibold text-[#1C1917] tracking-tight">
+          <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">
             Business Expenses
           </h2>
-          <p className="text-xs text-[#78716C] mt-0.5">
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">
             Log equipment, software subscriptions, studio costs, and deductibles.
           </p>
         </div>
@@ -167,27 +177,27 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ currencySymbol }) =>
 
       {/* Summary Strip */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white border border-[#E5E0D5] rounded-lg p-4">
-          <div className="text-[11px] font-semibold uppercase text-[#78716C]">
+        <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-lg p-4">
+          <div className="text-[11px] font-semibold uppercase text-[var(--text-muted)] tracking-wider">
             Total Expenses
           </div>
-          <div className="text-xl font-bold font-mono text-[#B45309] mt-1 tabular-nums">
+          <div className="text-xl font-bold font-mono text-[var(--color-warning)] mt-1 tabular-nums">
             {formatCents(totalExpenseCents, currencySymbol)}
           </div>
         </div>
-        <div className="bg-white border border-[#E5E0D5] rounded-lg p-4">
-          <div className="text-[11px] font-semibold uppercase text-[#78716C]">
+        <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-lg p-4">
+          <div className="text-[11px] font-semibold uppercase text-[var(--text-muted)] tracking-wider">
             Logged Entries
           </div>
-          <div className="text-xl font-bold font-mono text-[#1C1917] mt-1 tabular-nums">
+          <div className="text-xl font-bold font-mono text-[var(--text-primary)] mt-1 tabular-nums">
             {expenses.length}
           </div>
         </div>
-        <div className="bg-white border border-[#E5E0D5] rounded-lg p-4">
-          <div className="text-[11px] font-semibold uppercase text-[#78716C]">
+        <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-lg p-4">
+          <div className="text-[11px] font-semibold uppercase text-[var(--text-muted)] tracking-wider">
             Active Categories
           </div>
-          <div className="text-xl font-bold font-mono text-[#1C1917] mt-1 tabular-nums">
+          <div className="text-xl font-bold font-mono text-[var(--text-primary)] mt-1 tabular-nums">
             {categories.length}
           </div>
         </div>
@@ -197,20 +207,21 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ currencySymbol }) =>
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="relative w-72">
-            <Search size={14} className="absolute left-3 top-2.5 text-[#8C867A]" />
+            <Search size={14} className="absolute left-3 top-2.5 text-[var(--text-muted)]" />
             <input
               type="text"
               placeholder="Search by description or category..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 rounded-md border border-[#E5E0D5] bg-white text-xs text-[#1C1917] placeholder:text-[#A8A29E] focus:outline-none focus:ring-2 focus:ring-[#854D0E]/20"
+              className="w-full pl-9 pr-3 py-1.5 rounded-md border border-[var(--border-subtle)] bg-[var(--surface-card)] text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
             />
           </div>
 
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="rounded-md border border-[#E5E0D5] bg-white px-3 py-1.5 text-xs text-[#1C1917] focus:outline-none"
+            className="rounded-md border border-[var(--border-subtle)] bg-[var(--surface-card)] px-3 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 cursor-pointer"
+            aria-label="Filter expenses by category"
           >
             <option value="all">All Categories</option>
             {categories.map((c) => (
@@ -220,18 +231,18 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ currencySymbol }) =>
             ))}
           </select>
         </div>
-        <div className="text-xs text-[#78716C]">
-          Showing <span className="font-semibold text-[#1C1917]">{filteredExpenses.length}</span> expenses
+        <div className="text-xs text-[var(--text-muted)]">
+          Showing <span className="font-semibold text-[var(--text-primary)]">{filteredExpenses.length}</span> expenses
         </div>
       </div>
 
       {/* Expenses Table */}
       {filteredExpenses.length > 0 ? (
         <Card noPadding>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto select-text">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-[#E5E0D5] bg-[#FAF8F5] text-[#57534E] font-semibold uppercase tracking-wider">
+                <tr className="border-b border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text-secondary)] font-semibold uppercase tracking-wider">
                   <th className="px-5 py-3">Date</th>
                   <th className="px-4 py-3">Description</th>
                   <th className="px-4 py-3">Category</th>
@@ -241,39 +252,40 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ currencySymbol }) =>
                   <th className="px-5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#ECE8DE]">
+              <tbody className="divide-y divide-[var(--border-subtle)]">
                 {filteredExpenses.map((exp) => (
-                  <tr key={exp.id} className="hover:bg-[#FAF8F5] transition-colors">
-                    <td className="px-5 py-3.5 font-mono text-[#57534E]">
+                  <tr key={exp.id} className="hover:bg-[var(--surface-muted)] transition-colors">
+                    <td className="px-5 py-3.5 font-mono text-[var(--text-secondary)]">
                       {exp.date}
                     </td>
-                    <td className="px-4 py-3.5 font-semibold text-[#1C1917]">
+                    <td className="px-4 py-3.5 font-semibold text-[var(--text-primary)]">
                       {exp.description}
                       {exp.notes && (
-                        <div className="text-[11px] font-normal text-[#78716C] line-clamp-1">
+                        <div className="text-[11px] font-normal text-[var(--text-muted)] line-clamp-1">
                           {exp.notes}
                         </div>
                       )}
                     </td>
                     <td className="px-4 py-3.5">
-                      <span className="px-2 py-0.5 rounded bg-[#F4F1EA] text-[#57534E] font-medium border border-[#E5E0D5]">
+                      <span className="px-2 py-0.5 rounded bg-[var(--surface-muted)] text-[var(--text-secondary)] font-medium border border-[var(--border-subtle)]">
                         {exp.category_name}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 text-[#57534E]">
+                    <td className="px-4 py-3.5 text-[var(--text-secondary)]">
                       {exp.payment_method}
                     </td>
-                    <td className="px-4 py-3.5 text-[#78716C]">
+                    <td className="px-4 py-3.5 text-[var(--text-muted)]">
                       {exp.project_name || "—"}
                     </td>
-                    <td className="px-4 py-3.5 text-right font-mono tabular-nums font-bold text-[#B45309]">
+                    <td className="px-4 py-3.5 text-right font-mono tabular-nums font-bold text-[var(--color-warning)]">
                       -{formatCents(exp.amount_cents, currencySymbol)}
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <button
                         onClick={() => handleDeleteExpense(exp.id)}
-                        className="p-1 rounded text-[#8C867A] hover:text-[#DC2626] hover:bg-[#FEF2F2]"
+                        className="p-1 rounded text-[var(--text-muted)] hover:text-red-600 hover:bg-red-500/10 transition-colors"
                         title="Delete Expense"
+                        aria-label={`Delete expense ${exp.description}`}
                       >
                         <Trash2 size={15} />
                       </button>
@@ -319,23 +331,18 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ currencySymbol }) =>
           />
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-[#57534E] uppercase tracking-wider mb-1.5">
-                Category *
-              </label>
-              <select
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full rounded-md border border-[#E5E0D5] bg-white px-3 py-1.5 text-xs text-[#1C1917] focus:outline-none"
-                required
-              >
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              label="Category *"
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              required
+            >
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
 
             <Input
               label={`Amount (${currencySymbol}) *`}
@@ -343,6 +350,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ currencySymbol }) =>
               onChange={(e) => setAmountInput(e.target.value)}
               placeholder="1500"
               required
+              prefixIcon={<span className="text-xs font-semibold text-[var(--text-muted)]">{currencySymbol}</span>}
             />
           </div>
 
@@ -354,46 +362,37 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ currencySymbol }) =>
               onChange={(e) => setDate(e.target.value)}
               required
             />
-            <div>
-              <label className="block text-xs font-semibold text-[#57534E] uppercase tracking-wider mb-1.5">
-                Payment Method *
-              </label>
-              <select
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full rounded-md border border-[#E5E0D5] bg-white px-3 py-1.5 text-xs text-[#1C1917] focus:outline-none"
-              >
-                <option value="Bank Transfer">Bank Transfer</option>
-                <option value="GCash">GCash</option>
-                <option value="Maya">Maya</option>
-                <option value="Cash">Cash</option>
-                <option value="Credit Card">Credit Card</option>
-                <option value="PayPal">PayPal</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-[#57534E] uppercase tracking-wider mb-1.5">
-              Related Project (Optional)
-            </label>
-            <select
-              value={projectId}
-              onChange={(e) => setProjectId(e.target.value)}
-              className="w-full rounded-md border border-[#E5E0D5] bg-white px-3 py-1.5 text-xs text-[#1C1917] focus:outline-none"
+            <Select
+              label="Payment Method *"
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
             >
-              <option value="">None (General Business Expense)</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+              <option value="Bank Transfer">Bank Transfer</option>
+              <option value="GCash">GCash</option>
+              <option value="Maya">Maya</option>
+              <option value="Cash">Cash</option>
+              <option value="Credit Card">Credit Card</option>
+              <option value="PayPal">PayPal</option>
+              <option value="Other">Other</option>
+            </Select>
           </div>
 
-          <Input
+          <Select
+            label="Related Project (Optional)"
+            value={projectId}
+            onChange={(e) => setProjectId(e.target.value)}
+          >
+            <option value="">None (General Business Expense)</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </Select>
+
+          <Textarea
             label="Notes / Receipt Details"
+            rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="e.g. Tax deductible annual invoice #19203"

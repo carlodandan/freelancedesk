@@ -4,6 +4,9 @@ import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Modal";
 import { Input } from "../../components/ui/Input";
+import { Select } from "../../components/ui/Select";
+import { Textarea } from "../../components/ui/Textarea";
+import { useToast } from "../../components/ui/Toast";
 import { EmptyState } from "../../components/ui/EmptyState";
 import {
   InvoiceItem,
@@ -30,6 +33,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDraftModalOpen, setIsDraftModalOpen] = useState(false);
+  const { showToast } = useToast();
 
   // Form state
   const [clientId, setClientId] = useState("");
@@ -38,13 +42,13 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
   );
   const [dueDate, setDueDate] = useState("");
   const [discountInput, setDiscountInput] = useState("");
-  const [taxRateInput, setTaxRateInput] = useState("");
+  const [taxRateInput, setTaxRateInput] = useState("0");
   const [notes, setNotes] = useState("");
   const [paymentInstructions, setPaymentInstructions] = useState(
-    settings.default_payment_terms || "Payment due upon receipt. Bank Transfer / GCash / Maya accepted."
+    settings.default_payment_terms || "Payment due within 15 days of invoice date."
   );
   const [lineItems, setLineItems] = useState<CreateInvoiceLineItemInput[]>([
-    { description: "Creative Design & Illustration Services", quantity: 1, unit_price_cents: 200000 },
+    { description: "Freelance Service", quantity: 1, unit_price_cents: 100000 },
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -61,7 +65,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
         setClientId(clientData[0].id);
       }
     } catch (err) {
-      console.error("Failed to load invoices:", err);
+      console.error("Failed to load invoice data:", err);
     } finally {
       setIsLoading(false);
     }
@@ -118,12 +122,25 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
       setIsDraftModalOpen(false);
       await loadData();
 
+      showToast({
+        type: "success",
+        message: `Invoice #${newInv.invoice_number} created!`,
+        action: {
+          label: "Download PDF",
+          onClick: () => generateInvoicePdf(newInv, settings, true),
+        },
+      });
+
       // Offer immediate PDF download
       if (window.confirm(`Invoice ${newInv.invoice_number} created! Would you like to download the PDF now?`)) {
         generateInvoicePdf(newInv, settings, true);
       }
     } catch (err) {
       console.error("Failed to create invoice:", err);
+      showToast({
+        type: "danger",
+        message: "Failed to create invoice.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -132,6 +149,10 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
       await tauriService.updateInvoiceStatus(id, status);
+      showToast({
+        type: "info",
+        message: `Invoice status updated to ${status}.`,
+      });
       await loadData();
     } catch (err) {
       console.error("Failed to update invoice status:", err);
@@ -142,6 +163,10 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
     if (window.confirm("Delete this invoice record?")) {
       try {
         await tauriService.deleteInvoice(id);
+        showToast({
+          type: "info",
+          message: "Invoice record deleted.",
+        });
         await loadData();
       } catch (err) {
         console.error("Failed to delete invoice:", err);
@@ -293,21 +318,13 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
         <form onSubmit={handleCreateInvoice} className="space-y-4">
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-1">
-              <label className="block text-xs font-semibold text-[#57534E] uppercase tracking-wider mb-1.5">
-                Client *
-              </label>
-              <select
+              <Select
+                label="Client *"
                 value={clientId}
                 onChange={(e) => setClientId(e.target.value)}
-                className="w-full rounded-md border border-[#E5E0D5] bg-white px-3 py-1.5 text-xs text-[#1C1917] focus:outline-none"
+                options={clients.map((c) => ({ value: c.id, label: c.name }))}
                 required
-              >
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <Input
               label="Issue Date *"
@@ -393,6 +410,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
               value={discountInput}
               onChange={(e) => setDiscountInput(e.target.value)}
               placeholder="0"
+              prefixIcon={<span className="text-xs font-semibold text-[var(--text-muted)]">{currencySymbol}</span>}
             />
             <Input
               label="Tax Rate (%)"
@@ -402,14 +420,16 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
             />
           </div>
 
-          <Input
+          <Textarea
             label="Payment Instructions / Terms"
+            rows={2}
             value={paymentInstructions}
             onChange={(e) => setPaymentInstructions(e.target.value)}
           />
 
-          <Input
+          <Textarea
             label="Notes / Memo"
+            rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="e.g. Thank you for your business!"

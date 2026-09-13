@@ -40,7 +40,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   }, []);
 
   return (
-    <div className="flex h-screen w-screen min-w-[1200px] min-h-[800px] overflow-hidden bg-[#FAF8F5]">
+    <div className="flex h-screen w-screen min-w-0 overflow-hidden bg-[var(--bg-canvas)] text-[var(--text-primary)]">
       {/* Persistent Left Sidebar */}
       <Sidebar
         activeTab={activeTab}
@@ -59,7 +59,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         />
 
         {/* Scrollable Content Pane */}
-        <main className="flex-1 overflow-y-auto p-8">
+        <main className="flex-1 overflow-y-auto px-6 py-6 md:px-8 md:py-7">
           <div className="max-w-6xl mx-auto">{children}</div>
         </main>
       </div>
