@@ -61,7 +61,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
       setIsSearching(true);
       try {
         const res = await tauriService.globalSearch(trimmed);
-        setResults(res.results);
+        setResults(res?.results || []);
       } catch (err) {
         console.error("Global search error:", err);
       } finally {
@@ -125,6 +125,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
       default:
         onNavigate("dashboard");
     }
+    onClose();
   };
 
   return (
@@ -188,7 +189,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                 ))}
               </div>
             </div>
-          ) : results.length > 0 ? (
+          ) : (results?.length ?? 0) > 0 ? (
             <div className="space-y-1">
               <div className="px-3 py-1 text-[11px] font-semibold text-[#8C867A] uppercase tracking-wider">
                 Matching Records ({results.length})

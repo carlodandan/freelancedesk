@@ -152,7 +152,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             }
             noPadding
           >
-            {summary && summary.upcoming_deadlines.length > 0 ? (
+            {summary && (summary.upcoming_deadlines?.length ?? 0) > 0 ? (
               <div className="divide-y divide-[#ECE8DE]">
                 {summary.upcoming_deadlines.map((item) => (
                   <div
@@ -241,7 +241,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             }
             noPadding
           >
-            {summary && summary.recent_payments.length > 0 ? (
+            {summary && (summary.recent_payments?.length ?? 0) > 0 ? (
               <div className="divide-y divide-[#ECE8DE]">
                 {summary.recent_payments.map((p) => (
                   <div
@@ -298,7 +298,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             }
             noPadding
           >
-            {summary && summary.recent_activities.length > 0 ? (
+            {summary && (summary.recent_activities?.length ?? 0) > 0 ? (
               <div className="divide-y divide-[#ECE8DE] max-h-[460px] overflow-y-auto">
                 {summary.recent_activities.map((act) => (
                   <div

@@ -9,6 +9,9 @@ export function formatCents(
   currencySymbol = "₱",
   includeDecimals = true,
 ): string {
+  if (typeof cents !== "number" || isNaN(cents)) {
+    return includeDecimals ? `${currencySymbol}0.00` : `${currencySymbol}0`;
+  }
   const isNegative = cents < 0;
   const absCents = Math.abs(cents);
   const units = Math.floor(absCents / 100);
@@ -58,3 +61,61 @@ export function calculateDeposit(
   const remainingCents = totalCents - depositCents;
   return { depositCents, remainingCents };
 }
+
+export function calculateCommissionBalance(
+  priceCents: number,
+  totalPaidCents: number,
+  depositCents: number = 0,
+): {
+  remainingBalanceCents: number;
+  paymentStatus: "unpaid" | "partially_paid" | "deposit_paid" | "fully_paid";
+} {
+  const remainingBalanceCents = priceCents - totalPaidCents;
+  let paymentStatus: "unpaid" | "partially_paid" | "deposit_paid" | "fully_paid" = "unpaid";
+
+  if (remainingBalanceCents <= 0) {
+    paymentStatus = "fully_paid";
+  } else if (depositCents > 0 && totalPaidCents >= depositCents) {
+    paymentStatus = "deposit_paid";
+  } else if (totalPaidCents > 0) {
+    paymentStatus = "partially_paid";
+  }
+
+  return { remainingBalanceCents, paymentStatus };
+}
+
+export function calculateInvoiceTotals(
+  items: Array<{ quantity: number; unit_price_cents: number }>,
+  discountCents = 0,
+  taxRateBps = 0,
+): {
+  subtotalCents: number;
+  discountCents: number;
+  taxAmountCents: number;
+  totalCents: number;
+} {
+  const subtotalCents = items.reduce(
+    (sum, item) => sum + (item.quantity || 0) * (item.unit_price_cents || 0),
+    0,
+  );
+  const cappedDiscount = Math.min(Math.max(0, discountCents), subtotalCents);
+  const discountedSubtotal = subtotalCents - cappedDiscount;
+  // tax_rate_bps is basis points (1200 bps = 12.00%)
+  const taxAmountCents = Math.round((discountedSubtotal * Math.max(0, taxRateBps)) / 10000);
+  const totalCents = discountedSubtotal + taxAmountCents;
+
+  return {
+    subtotalCents,
+    discountCents: cappedDiscount,
+    taxAmountCents,
+    totalCents,
+  };
+}
+
+export function calculateNetProfit(
+  incomeCents: number,
+  expenseCents: number,
+): number {
+  return incomeCents - expenseCents;
+}
+
