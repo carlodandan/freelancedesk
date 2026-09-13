@@ -32,11 +32,20 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
           {icon}
         </div>
       )}
-      <h3 className="text-base font-semibold text-[#1C1917] tracking-tight">{title}</h3>
-      <p className="mt-1.5 text-xs text-[#78716C] max-w-sm leading-relaxed">{description}</p>
+      <h3 className="text-base font-semibold text-[#1C1917] tracking-tight">
+        {title}
+      </h3>
+      <p className="mt-1.5 text-xs text-[#78716C] max-w-sm leading-relaxed">
+        {description}
+      </p>
       {actionLabel && onAction && (
         <div className="mt-6">
-          <Button variant="primary" size="sm" icon={actionIcon} onClick={onAction}>
+          <Button
+            variant="primary"
+            size="sm"
+            icon={actionIcon}
+            onClick={onAction}
+          >
             {actionLabel}
           </Button>
         </div>

@@ -24,7 +24,9 @@ export const Card: React.FC<CardProps> = ({
     >
       {(header || action) && (
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#E5E0D5] bg-[#FAF8F5]">
-          <div className="text-sm font-semibold text-[#1C1917] tracking-tight">{header}</div>
+          <div className="text-sm font-semibold text-[#1C1917] tracking-tight">
+            {header}
+          </div>
           {action && <div>{action}</div>}
         </div>
       )}

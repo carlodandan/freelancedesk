@@ -19,7 +19,10 @@ interface PlaceholderViewProps {
   onNavigate: (tab: NavigationTab) => void;
 }
 
-export const PlaceholderView: React.FC<PlaceholderViewProps> = ({ tab, onNavigate }) => {
+export const PlaceholderView: React.FC<PlaceholderViewProps> = ({
+  tab,
+  onNavigate,
+}) => {
   const configs: Record<
     string,
     {
@@ -34,10 +37,12 @@ export const PlaceholderView: React.FC<PlaceholderViewProps> = ({ tab, onNavigat
   > = {
     clients: {
       title: "Client Directory",
-      subtitle: "Track your client relationships, accounts, earnings, and contact details.",
+      subtitle:
+        "Track your client relationships, accounts, earnings, and contact details.",
       icon: <Users size={28} />,
       emptyTitle: "No clients registered yet",
-      emptyDesc: "Register your clients to associate them with projects, commissions, and invoices.",
+      emptyDesc:
+        "Register your clients to associate them with projects, commissions, and invoices.",
       actionLabel: "Add First Client",
       phase: "Phase 2 — Core Records",
     },
@@ -46,43 +51,52 @@ export const PlaceholderView: React.FC<PlaceholderViewProps> = ({ tab, onNavigat
       subtitle: "Organize larger scopes of freelance work and milestones.",
       icon: <Briefcase size={28} />,
       emptyTitle: "No active projects",
-      emptyDesc: "Create multi-stage client projects to group deliverables, deadlines, and expenses.",
+      emptyDesc:
+        "Create multi-stage client projects to group deliverables, deadlines, and expenses.",
       actionLabel: "Create Project",
       phase: "Phase 2 — Core Records",
     },
     commissions: {
       title: "Commissions",
-      subtitle: "Manage individual freelance orders, customized line items, and deposit requirements.",
+      subtitle:
+        "Manage individual freelance orders, customized line items, and deposit requirements.",
       icon: <Sparkles size={28} />,
       emptyTitle: "No commissions yet",
-      emptyDesc: "Create your first commission to start tracking freelance jobs, deposits, and delivery dates.",
+      emptyDesc:
+        "Create your first commission to start tracking freelance jobs, deposits, and delivery dates.",
       actionLabel: "New Commission",
       phase: "Phase 2 — Core Records",
     },
     payments: {
       title: "Payment Ledger",
-      subtitle: "Record full and partial client payments, deposits, and payment methods.",
+      subtitle:
+        "Record full and partial client payments, deposits, and payment methods.",
       icon: <CreditCard size={28} />,
       emptyTitle: "No payments recorded yet",
-      emptyDesc: "Payments received via Cash, Bank Transfer, GCash, Maya, or PayPal will be itemized here.",
+      emptyDesc:
+        "Payments received via Cash, Bank Transfer, GCash, Maya, or PayPal will be itemized here.",
       actionLabel: "Record Payment",
       phase: "Phase 3 — Money",
     },
     expenses: {
       title: "Business Expenses",
-      subtitle: "Track operating costs, software subscriptions, equipment, and deductible items.",
+      subtitle:
+        "Track operating costs, software subscriptions, equipment, and deductible items.",
       icon: <Receipt size={28} />,
       emptyTitle: "No expenses recorded",
-      emptyDesc: "Keep track of deductible business expenses by category and project attribution.",
+      emptyDesc:
+        "Keep track of deductible business expenses by category and project attribution.",
       actionLabel: "Add Expense",
       phase: "Phase 3 — Money",
     },
     invoices: {
       title: "Invoices",
-      subtitle: "Generate, send, and export clean PDF invoices with custom prefixes.",
+      subtitle:
+        "Generate, send, and export clean PDF invoices with custom prefixes.",
       icon: <FileText size={28} />,
       emptyTitle: "No invoices created",
-      emptyDesc: "Generate professional offline PDF invoices with auto-incremented invoice numbers.",
+      emptyDesc:
+        "Generate professional offline PDF invoices with auto-incremented invoice numbers.",
       actionLabel: "Draft Invoice",
       phase: "Phase 4 — Documents",
     },
@@ -91,25 +105,30 @@ export const PlaceholderView: React.FC<PlaceholderViewProps> = ({ tab, onNavigat
       subtitle: "Monthly income, category expenses, and net profit breakdowns.",
       icon: <BarChart3 size={28} />,
       emptyTitle: "Ready for reporting data",
-      emptyDesc: "Reports calculate income vs. expenses automatically once financial entries are logged.",
+      emptyDesc:
+        "Reports calculate income vs. expenses automatically once financial entries are logged.",
       actionLabel: "Back to Dashboard",
       phase: "Phase 6 — Reports",
     },
     calendar: {
       title: "Deadline Calendar",
-      subtitle: "High-level visual timeline of commission and project due dates.",
+      subtitle:
+        "High-level visual timeline of commission and project due dates.",
       icon: <Calendar size={28} />,
       emptyTitle: "Calendar timeline",
-      emptyDesc: "Commission deadlines and invoice due dates will appear on your desktop timeline.",
+      emptyDesc:
+        "Commission deadlines and invoice due dates will appear on your desktop timeline.",
       actionLabel: "Go to Commissions",
       phase: "Phase 5 — Organization",
     },
     files: {
       title: "Files & Attachments",
-      subtitle: "Local filesystem storage of reference materials, sketches, and deliverables.",
+      subtitle:
+        "Local filesystem storage of reference materials, sketches, and deliverables.",
       icon: <FolderArchive size={28} />,
       emptyTitle: "No attachments stored yet",
-      emptyDesc: "Files attached to clients, projects, or commissions will be stored safely in your app-data folder.",
+      emptyDesc:
+        "Files attached to clients, projects, or commissions will be stored safely in your app-data folder.",
       actionLabel: "Browse Files",
       phase: "Phase 5 — Organization",
     },

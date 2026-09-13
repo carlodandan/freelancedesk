@@ -12,6 +12,7 @@ import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { AppSettings, AppInfo } from "../../types/settings";
+import { tauriService } from "../../services/tauri";
 
 interface SettingsViewProps {
   settings: AppSettings;
@@ -27,7 +28,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [formData, setFormData] = useState<AppSettings>(settings);
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
-  const [activeTab, setActiveTab] = useState<"general" | "invoice" | "storage">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "invoice" | "storage">(
+    "general",
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +55,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             Settings & Business Profile
           </h2>
           <p className="text-xs text-[#78716C] mt-0.5">
-            Configure your business details, default deposit rates, and local database settings.
+            Configure your business details, default deposit rates, and local
+            database settings.
           </p>
         </div>
         <Button
@@ -62,7 +66,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           onClick={handleSubmit}
           disabled={isSaving}
         >
-          {isSaving ? "Saving..." : savedSuccess ? "Settings Saved" : "Save Changes"}
+          {isSaving
+            ? "Saving..."
+            : savedSuccess
+              ? "Settings Saved"
+              : "Save Changes"}
         </Button>
       </div>
 
@@ -117,7 +125,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   label="Freelancer Name"
                   value={formData.freelancer_name}
                   onChange={(e) =>
-                    setFormData({ ...formData, freelancer_name: e.target.value })
+                    setFormData({
+                      ...formData,
+                      freelancer_name: e.target.value,
+                    })
                   }
                   placeholder="e.g. Maria Santos"
                   hint="Your personal or professional name"
@@ -174,7 +185,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   label="Currency Symbol"
                   value={formData.currency_symbol}
                   onChange={(e) =>
-                    setFormData({ ...formData, currency_symbol: e.target.value })
+                    setFormData({
+                      ...formData,
+                      currency_symbol: e.target.value,
+                    })
                   }
                   placeholder="₱"
                   hint="e.g. ₱, $, €, £"
@@ -293,23 +307,110 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 {appInfo && (
                   <div className="space-y-3 text-xs">
                     <div>
-                      <span className="font-semibold text-[#57534E]">Database Path:</span>
+                      <span className="font-semibold text-[#57534E]">
+                        Database Path:
+                      </span>
                       <div className="mt-1 p-2 rounded bg-[#F4F1EA] font-mono text-[11px] text-[#1C1917] select-all break-all">
                         {appInfo.db_path}
                       </div>
                     </div>
                     <div>
-                      <span className="font-semibold text-[#57534E]">Application Data Directory:</span>
+                      <span className="font-semibold text-[#57534E]">
+                        Application Data Directory:
+                      </span>
                       <div className="mt-1 p-2 rounded bg-[#F4F1EA] font-mono text-[11px] text-[#1C1917] select-all break-all">
                         {appInfo.app_data_dir}
                       </div>
                     </div>
                     <div>
-                      <span className="font-semibold text-[#57534E]">Application Version:</span>
-                      <span className="ml-2 font-mono text-xs">{appInfo.version}</span>
+                      <span className="font-semibold text-[#57534E]">
+                        Application Version:
+                      </span>
+                      <span className="ml-2 font-mono text-xs">
+                        {appInfo.version}
+                      </span>
                     </div>
                   </div>
                 )}
+              </div>
+            </Card>
+
+            {/* Local Backup & Restore */}
+            <Card
+              header={
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={16} className="text-[#854D0E]" />
+                  <span>Backup & Disaster Recovery</span>
+                </div>
+              }
+            >
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-semibold text-[#1C1917]">
+                      Create Portable Snapshot
+                    </div>
+                    <div className="text-[11px] text-[#78716C]">
+                      Create a self-contained local copy of your database.
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        const path = await tauriService.createBackup();
+                        alert(`Backup created successfully at:\n${path}`);
+                      } catch (err) {
+                        alert(`Backup failed: ${err}`);
+                      }
+                    }}
+                  >
+                    Create Backup
+                  </Button>
+                </div>
+
+                <div className="border-t border-[#E5E0D5] pt-4">
+                  <div className="text-xs font-semibold text-[#1C1917]">
+                    Restore Database from Backup
+                  </div>
+                  <p className="text-[11px] text-[#78716C] mt-0.5">
+                    Restores your records. A safety backup of your current database is always created automatically prior to restoring.
+                  </p>
+                  <div className="mt-3 flex items-center gap-2">
+                    <input
+                      type="text"
+                      id="restore-path-input"
+                      placeholder="Full path to .db backup file"
+                      className="flex-1 rounded-md border border-[#E5E0D5] bg-white px-3 py-1.5 text-xs text-[#1C1917] font-mono"
+                    />
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      onClick={async () => {
+                        const input = document.getElementById("restore-path-input") as HTMLInputElement;
+                        const val = input?.value.trim();
+                        if (!val) {
+                          alert("Please enter the full path to a backup .db file.");
+                          return;
+                        }
+                        if (confirm("Restore this database? An automatic safety backup will be created first.")) {
+                          try {
+                            const res = await tauriService.restoreBackup(val);
+                            alert(res);
+                            window.location.reload();
+                          } catch (err) {
+                            alert(`Restore failed: ${err}`);
+                          }
+                        }
+                      }}
+                    >
+                      Restore
+                    </Button>
+                  </div>
+                </div>
               </div>
             </Card>
           </div>

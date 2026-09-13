@@ -38,7 +38,9 @@ export const Header: React.FC<HeaderProps> = ({
         {businessName && (
           <>
             <span className="text-xs text-[#8C867A] font-medium">•</span>
-            <span className="text-xs text-[#78716C] font-medium">{businessName}</span>
+            <span className="text-xs text-[#78716C] font-medium">
+              {businessName}
+            </span>
           </>
         )}
         <span className="text-xs text-[#8C867A] font-medium">•</span>

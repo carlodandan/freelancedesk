@@ -69,7 +69,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           id: "commissions" as NavigationTab,
           label: "Commissions",
           icon: <Sparkles size={18} />,
-          badge: pendingCommissionsCount > 0 ? pendingCommissionsCount : undefined,
+          badge:
+            pendingCommissionsCount > 0 ? pendingCommissionsCount : undefined,
         },
       ],
     },
@@ -167,7 +168,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <span className={isActive ? "text-[#854D0E]" : "text-[#78716C]"}>
+                      <span
+                        className={
+                          isActive ? "text-[#854D0E]" : "text-[#78716C]"
+                        }
+                      >
                         {item.icon}
                       </span>
                       <span>{item.label}</span>
@@ -196,7 +201,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex items-center justify-between px-3 py-1.5 text-xs text-[#78716C]">
           <div className="flex items-center gap-1.5">
             <ShieldCheck size={14} className="text-[#166534]" />
-            <span className="text-[11px] font-medium text-[#166534]">Local & Offline</span>
+            <span className="text-[11px] font-medium text-[#166534]">
+              Local & Offline
+            </span>
           </div>
           <span className="text-[11px] font-mono text-[#8C867A]">SQLite</span>
         </div>

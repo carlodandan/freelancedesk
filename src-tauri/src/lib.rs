@@ -45,6 +45,47 @@ pub fn run() {
             commands::settings::update_settings,
             commands::dashboard::get_dashboard_summary,
             commands::app::get_app_info,
+            // Clients
+            commands::clients::get_clients,
+            commands::clients::create_client,
+            commands::clients::update_client,
+            commands::clients::delete_client,
+            // Projects
+            commands::projects::get_projects,
+            commands::projects::create_project,
+            commands::projects::update_project,
+            commands::projects::delete_project,
+            // Commissions
+            commands::commissions::get_commissions,
+            commands::commissions::create_commission,
+            commands::commissions::update_commission_status,
+            commands::commissions::delete_commission,
+            // Payments
+            commands::payments::get_payments,
+            commands::payments::create_payment,
+            commands::payments::delete_payment,
+            // Expenses
+            commands::expenses::get_expenses,
+            commands::expenses::create_expense,
+            commands::expenses::delete_expense,
+            commands::expenses::get_expense_categories,
+            commands::expenses::create_expense_category,
+            // Invoices
+            commands::invoices::get_invoices,
+            commands::invoices::create_invoice,
+            commands::invoices::update_invoice_status,
+            commands::invoices::delete_invoice,
+            // Reports
+            commands::reports::get_financial_reports,
+            // Search
+            commands::search::global_search,
+            // Attachments
+            commands::attachments::get_attachments,
+            commands::attachments::add_attachment,
+            commands::attachments::delete_attachment,
+            // Backup & Restore
+            commands::backup::create_backup,
+            commands::backup::restore_backup,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

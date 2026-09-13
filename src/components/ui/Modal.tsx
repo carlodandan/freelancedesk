@@ -41,11 +41,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[1px] animate-in fade-in duration-150">
-      <div
-        className="fixed inset-0"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+      <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
       <div
         className={`relative w-full ${maxWidthClass} bg-white border border-[#E5E0D5] rounded-lg shadow-xl overflow-hidden z-10 flex flex-col max-h-[90vh]`}
         role="dialog"
@@ -55,7 +51,10 @@ export const Modal: React.FC<ModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E0D5] bg-[#FAF8F5]">
           <div>
-            <h2 id="modal-title" className="text-base font-semibold text-[#1C1917]">
+            <h2
+              id="modal-title"
+              className="text-base font-semibold text-[#1C1917]"
+            >
               {title}
             </h2>
             {description && (

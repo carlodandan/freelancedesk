@@ -7,7 +7,7 @@
 export function formatCents(
   cents: number,
   currencySymbol = "₱",
-  includeDecimals = true
+  includeDecimals = true,
 ): string {
   const isNegative = cents < 0;
   const absCents = Math.abs(cents);
@@ -47,7 +47,10 @@ export function parseToCents(amountStr: string): number {
   return cleaned.startsWith("-") ? -total : total;
 }
 
-export function calculateDeposit(totalCents: number, percentage: number): {
+export function calculateDeposit(
+  totalCents: number,
+  percentage: number,
+): {
   depositCents: number;
   remainingCents: number;
 } {

@@ -172,7 +172,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           {item.title}
                         </div>
                         <div className="text-xs text-[#78716C] mt-0.5">
-                          Client: <span className="font-medium text-[#57534E]">{item.client_name}</span>
+                          Client:{" "}
+                          <span className="font-medium text-[#57534E]">
+                            {item.client_name}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -181,7 +184,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         {item.deadline}
                       </div>
                       <Badge
-                        variant={item.days_remaining <= 3 ? "danger" : "warning"}
+                        variant={
+                          item.days_remaining <= 3 ? "danger" : "warning"
+                        }
                         size="sm"
                         className="mt-1"
                       >
@@ -198,7 +203,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <div className="inline-flex p-3 rounded-full bg-[#F4F1EA] text-[#8C867A] mb-3">
                   <CheckCircle2 size={24} />
                 </div>
-                <h3 className="text-sm font-semibold text-[#1C1917]">No impending deadlines</h3>
+                <h3 className="text-sm font-semibold text-[#1C1917]">
+                  No impending deadlines
+                </h3>
                 <p className="text-xs text-[#78716C] max-w-sm mx-auto mt-1">
                   You are all caught up on scheduled commissions and projects.
                 </p>
@@ -260,7 +267,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <div className="inline-flex p-3 rounded-full bg-[#F4F1EA] text-[#8C867A] mb-3">
                   <Clock size={24} />
                 </div>
-                <h3 className="text-sm font-semibold text-[#1C1917]">No payments recorded yet</h3>
+                <h3 className="text-sm font-semibold text-[#1C1917]">
+                  No payments recorded yet
+                </h3>
                 <p className="text-xs text-[#78716C] max-w-sm mx-auto mt-1">
                   Recorded deposits and job payments will be itemized here.
                 </p>
@@ -292,7 +301,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {summary && summary.recent_activities.length > 0 ? (
               <div className="divide-y divide-[#ECE8DE] max-h-[460px] overflow-y-auto">
                 {summary.recent_activities.map((act) => (
-                  <div key={act.id} className="p-3.5 hover:bg-[#FAF8F5] transition-colors">
+                  <div
+                    key={act.id}
+                    className="p-3.5 hover:bg-[#FAF8F5] transition-colors"
+                  >
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-mono uppercase font-bold text-[#854D0E] tracking-wider">
                         {act.entity_type}

@@ -1,4 +1,6 @@
 pub mod migrations;
+#[cfg(test)]
+mod tests;
 
 use rusqlite::{Connection, Result};
 use std::path::Path;

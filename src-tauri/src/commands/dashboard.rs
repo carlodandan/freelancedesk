@@ -48,9 +48,9 @@ pub fn get_dashboard_summary(state: State<'_, AppState>) -> Result<DashboardSumm
     let upcoming_deadlines_count: i64 = conn
         .query_row(
             "SELECT COUNT(1) FROM (
-                SELECT deadline FROM projects WHERE deadline IS NOT NULL AND status IN ('planning', 'in_progress', 'waiting') AND deadline >= date('now') AND deadline <= date('now', '+14 days')
+                SELECT deadline FROM projects WHERE deadline IS NOT NULL AND deadline != '' AND status IN ('planning', 'in_progress', 'waiting') AND deadline >= date('now') AND deadline <= date('now', '+14 days')
                 UNION ALL
-                SELECT deadline FROM commissions WHERE deadline IS NOT NULL AND status NOT IN ('completed', 'cancelled') AND deadline >= date('now') AND deadline <= date('now', '+14 days')
+                SELECT deadline FROM commissions WHERE deadline IS NOT NULL AND deadline != '' AND status NOT IN ('completed', 'cancelled') AND deadline >= date('now') AND deadline <= date('now', '+14 days')
             )",
             [],
             |row| row.get(0),
@@ -88,13 +88,13 @@ pub fn get_dashboard_summary(state: State<'_, AppState>) -> Result<DashboardSumm
                 CAST(ROUND(julianday(p.deadline) - julianday(date('now'))) AS INTEGER) as days_remaining, p.status
          FROM projects p
          JOIN clients c ON p.client_id = c.id
-         WHERE p.deadline IS NOT NULL AND p.status IN ('planning', 'in_progress', 'waiting') AND p.deadline >= date('now')
+         WHERE p.deadline IS NOT NULL AND deadline != '' AND p.status IN ('planning', 'in_progress', 'waiting') AND p.deadline >= date('now')
          UNION ALL
          SELECT com.id, 'commission' as entity_type, com.title, c.name as client_name, com.deadline,
                 CAST(ROUND(julianday(com.deadline) - julianday(date('now'))) AS INTEGER) as days_remaining, com.status
          FROM commissions com
          JOIN clients c ON com.client_id = c.id
-         WHERE com.deadline IS NOT NULL AND com.status NOT IN ('completed', 'cancelled') AND com.deadline >= date('now')
+         WHERE com.deadline IS NOT NULL AND deadline != '' AND com.status NOT IN ('completed', 'cancelled') AND com.deadline >= date('now')
          ORDER BY deadline ASC
          LIMIT 5",
     ) {

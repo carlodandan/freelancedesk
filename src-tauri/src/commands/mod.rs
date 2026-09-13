@@ -1,3 +1,13 @@
 pub mod app;
+pub mod attachments;
+pub mod backup;
+pub mod clients;
+pub mod commissions;
 pub mod dashboard;
+pub mod expenses;
+pub mod invoices;
+pub mod payments;
+pub mod projects;
+pub mod reports;
+pub mod search;
 pub mod settings;

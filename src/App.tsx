@@ -2,7 +2,15 @@ import { useState, useEffect } from "react";
 import { MainLayout } from "./components/layout/MainLayout";
 import { DashboardView } from "./features/dashboard/DashboardView";
 import { SettingsView } from "./features/settings/SettingsView";
-import { PlaceholderView } from "./components/ui/PlaceholderView";
+import { ClientsView } from "./features/clients/ClientsView";
+import { ProjectsView } from "./features/projects/ProjectsView";
+import { CommissionsView } from "./features/commissions/CommissionsView";
+import { PaymentsView } from "./features/payments/PaymentsView";
+import { ExpensesView } from "./features/expenses/ExpensesView";
+import { InvoicesView } from "./features/invoices/InvoicesView";
+import { ReportsView } from "./features/reports/ReportsView";
+import { CalendarView } from "./features/calendar/CalendarView";
+import { FilesView } from "./features/files/FilesView";
 import { NavigationTab } from "./types/navigation";
 import { AppSettings, AppInfo } from "./types/settings";
 import { DashboardSummary } from "./types/dashboard";
@@ -48,6 +56,15 @@ export function App() {
     loadInitialData();
   }, []);
 
+  const refreshSummary = async () => {
+    try {
+      const summary = await tauriService.getDashboardSummary();
+      setDashboardSummary(summary);
+    } catch (err) {
+      console.error("Failed to refresh summary:", err);
+    }
+  };
+
   const handleSaveSettings = async (updated: AppSettings) => {
     const res = await tauriService.updateSettings(updated);
     setSettings(res);
@@ -88,22 +105,82 @@ export function App() {
     );
   }
 
+  const currencySymbol = settings.currency_symbol || "₱";
+
   return (
     <MainLayout
       activeTab={activeTab}
-      onSelectTab={setActiveTab}
+      onSelectTab={(tab) => {
+        setActiveTab(tab);
+        refreshSummary();
+      }}
       freelancerName={settings.freelancer_name}
       businessName={settings.business_name}
       pendingCommissionsCount={dashboardSummary?.pending_commissions_count || 0}
       activeProjectsCount={dashboardSummary?.active_projects_count || 0}
-      onQuickAction={() => setActiveTab("commissions")}
+      onQuickAction={() => {
+        setActiveTab("commissions");
+        refreshSummary();
+      }}
     >
       {activeTab === "dashboard" && (
         <DashboardView
           summary={dashboardSummary}
-          currencySymbol={settings.currency_symbol || "₱"}
-          onNavigate={setActiveTab}
+          currencySymbol={currencySymbol}
+          onNavigate={(t) => {
+            setActiveTab(t);
+            refreshSummary();
+          }}
         />
+      )}
+
+      {activeTab === "clients" && (
+        <ClientsView
+          currencySymbol={currencySymbol}
+          onNavigateToCommissions={() => setActiveTab("commissions")}
+        />
+      )}
+
+      {activeTab === "projects" && (
+        <ProjectsView currencySymbol={currencySymbol} />
+      )}
+
+      {activeTab === "commissions" && (
+        <CommissionsView
+          currencySymbol={currencySymbol}
+          defaultDepositPct={settings.default_deposit_pct}
+          onNavigateToPayments={() => setActiveTab("payments")}
+        />
+      )}
+
+      {activeTab === "payments" && (
+        <PaymentsView
+          currencySymbol={currencySymbol}
+          settings={settings}
+        />
+      )}
+
+      {activeTab === "expenses" && (
+        <ExpensesView currencySymbol={currencySymbol} />
+      )}
+
+      {activeTab === "invoices" && (
+        <InvoicesView
+          currencySymbol={currencySymbol}
+          settings={settings}
+        />
+      )}
+
+      {activeTab === "reports" && (
+        <ReportsView currencySymbol={currencySymbol} />
+      )}
+
+      {activeTab === "calendar" && (
+        <CalendarView onNavigate={setActiveTab} />
+      )}
+
+      {activeTab === "files" && (
+        <FilesView />
       )}
 
       {activeTab === "settings" && (
@@ -112,10 +189,6 @@ export function App() {
           appInfo={appInfo}
           onSave={handleSaveSettings}
         />
-      )}
-
-      {activeTab !== "dashboard" && activeTab !== "settings" && (
-        <PlaceholderView tab={activeTab} onNavigate={setActiveTab} />
       )}
     </MainLayout>
   );
