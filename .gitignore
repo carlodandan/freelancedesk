@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.agents/
+coverage/
+*.pdf
+
+# Secrets and Environment Variables
+.env
+.env.*
+!.env.example
+
+# Tauri's Updater Key
+updater/freelanceDesk.key
+updater/freelanceDesk.key.pub

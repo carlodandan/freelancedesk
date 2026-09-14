@@ -1,0 +1,594 @@
+import React, { useState, useEffect } from "react";
+import { Sparkles, Plus, Search, Trash2 } from "lucide-react";
+import { Card } from "../../components/ui/Card";
+import { Button } from "../../components/ui/Button";
+import { Badge } from "../../components/ui/Badge";
+import { Modal } from "../../components/ui/Modal";
+import { Input } from "../../components/ui/Input";
+import { Select } from "../../components/ui/Select";
+import { Textarea } from "../../components/ui/Textarea";
+import { useToast } from "../../components/ui/Toast";
+import { EmptyState } from "../../components/ui/EmptyState";
+import {
+  CommissionItem,
+  ClientItem,
+  ProjectItem,
+  CreateCommissionInput,
+  CreateCommissionLineItemInput,
+} from "../../types/entities";
+import { tauriService } from "../../services/tauri";
+import {
+  formatCents,
+  parseToCents,
+  calculateDeposit,
+} from "../../services/currency";
+
+interface CommissionsViewProps {
+  currencySymbol: string;
+  defaultDepositPct?: number;
+  onNavigateToPayments?: (commissionId: string) => void;
+}
+
+export const CommissionsView: React.FC<CommissionsViewProps> = ({
+  currencySymbol,
+  defaultDepositPct = 50,
+}) => {
+  const [commissions, setCommissions] = useState<CommissionItem[]>([]);
+  const [clients, setClients] = useState<ClientItem[]>([]);
+  const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { showToast } = useToast();
+
+  // Form state
+  const [clientId, setClientId] = useState("");
+  const [projectId, setProjectId] = useState<string>("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [commissionType, setCommissionType] = useState("Illustration");
+  const [priceInput, setPriceInput] = useState("");
+  const [depositPct, setDepositPct] = useState<number>(defaultDepositPct);
+  const [dateRequested, setDateRequested] = useState("");
+  const [deadline, setDeadline] = useState("");
+  const [notes, setNotes] = useState("");
+  const [lineItems, setLineItems] = useState<CreateCommissionLineItemInput[]>(
+    [],
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      const [commData, clientData, projData] = await Promise.all([
+        tauriService.getCommissions(),
+        tauriService.getClients(),
+        tauriService.getProjects(),
+      ]);
+      setCommissions(commData);
+      setClients(clientData);
+      setProjects(projData);
+      if (clientData.length > 0 && !clientId) {
+        setClientId(clientData[0].id);
+      }
+    } catch (err) {
+      console.error("Failed to load commissions:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const addLineItem = () => {
+    setLineItems([
+      ...lineItems,
+      { description: "", quantity: 1, unit_price_cents: 0 },
+    ]);
+  };
+
+  const removeLineItem = (index: number) => {
+    const updated = [...lineItems];
+    updated.splice(index, 1);
+    setLineItems(updated);
+    recalcTotalFromItems(updated);
+  };
+
+  const updateLineItem = (
+    index: number,
+    field: keyof CreateCommissionLineItemInput,
+    value: any,
+  ) => {
+    const updated = [...lineItems];
+    updated[index] = { ...updated[index], [field]: value };
+    setLineItems(updated);
+    recalcTotalFromItems(updated);
+  };
+
+  const recalcTotalFromItems = (items: CreateCommissionLineItemInput[]) => {
+    if (items.length > 0) {
+      const totalCents = items.reduce(
+        (sum, item) => sum + item.unit_price_cents * item.quantity,
+        0,
+      );
+      setPriceInput((totalCents / 100).toString());
+    }
+  };
+
+  const handleCreateCommission = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !clientId) return;
+
+    setIsSubmitting(true);
+    try {
+      const priceCents = parseToCents(priceInput);
+      const input: CreateCommissionInput = {
+        client_id: clientId,
+        project_id: projectId.trim() || undefined,
+        title: title.trim(),
+        description: description.trim() || undefined,
+        commission_type: commissionType.trim() || undefined,
+        price_cents: priceCents,
+        deposit_percentage: depositPct,
+        date_requested: dateRequested || undefined,
+        start_date: (() => {
+          const d = new Date();
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        })(),
+        deadline: deadline || undefined,
+        notes: notes.trim() || undefined,
+        items: lineItems,
+      };
+
+      await tauriService.createCommission(input);
+      setIsCreateModalOpen(false);
+      resetForm();
+      showToast("Commission created successfully", "success");
+      await loadData();
+    } catch (err) {
+      console.error("Failed to create commission:", err);
+      showToast("Failed to create commission", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateStatus = async (id: string, newStatus: string) => {
+    try {
+      await tauriService.updateCommissionStatus(id, newStatus);
+      showToast("Commission status updated", "info");
+      await loadData();
+    } catch (err) {
+      console.error("Failed to update status:", err);
+      showToast("Failed to update status", "error");
+    }
+  };
+
+  const handleDeleteCommission = async (id: string) => {
+    if (window.confirm("Archive or delete this commission?")) {
+      try {
+        await tauriService.deleteCommission(id);
+        showToast("Commission archived", "info");
+        await loadData();
+      } catch (err) {
+        console.error("Failed to delete commission:", err);
+        showToast("Failed to archive commission", "error");
+      }
+    }
+  };
+
+  const resetForm = () => {
+    setProjectId("");
+    setTitle("");
+    setDescription("");
+    setCommissionType("");
+    setPriceInput("");
+    setDepositPct(defaultDepositPct);
+    setDateRequested("");
+    setDeadline("");
+    setNotes("");
+    setLineItems([]);
+  };
+
+  const calculatedDeposit = calculateDeposit(
+    parseToCents(priceInput),
+    depositPct,
+  );
+
+  const filteredCommissions = commissions.filter((c) => {
+    const matchesSearch =
+      c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.client_name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === "all" || c.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const getPaymentStatusBadge = (status: string) => {
+    switch (status) {
+      case "paid":
+        return <Badge variant="success">Paid</Badge>;
+      case "deposit_paid":
+        return <Badge variant="warning">Deposit Paid</Badge>;
+      case "partially_paid":
+        return <Badge variant="info">Partially Paid</Badge>;
+      default:
+        return <Badge variant="neutral">Unpaid</Badge>;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle)]">
+        <div>
+          <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">
+            Commissions & Job Orders
+          </h2>
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">
+            Track individual jobs, custom line items, upfront deposits, and
+            balances.
+          </p>
+        </div>
+        <Button
+          variant="primary"
+          size="sm"
+          icon={<Plus size={14} />}
+          onClick={() => setIsCreateModalOpen(true)}
+        >
+          New Commission
+        </Button>
+      </div>
+
+      {/* Controls */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="relative w-72">
+            <Search
+              size={14}
+              className="absolute left-3 top-2.5 text-[var(--text-muted)]"
+            />
+            <input
+              type="text"
+              placeholder="Search by job title or client..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 rounded-md border border-[var(--border-subtle)] bg-[var(--surface-card)] text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
+            />
+          </div>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-md border border-[var(--border-subtle)] bg-[var(--surface-card)] px-3 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 cursor-pointer"
+            aria-label="Filter commissions by status"
+          >
+            <option value="all">All Statuses</option>
+            <option value="inquiry">Inquiry</option>
+            <option value="quoted">Quoted</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="in_progress">In Progress</option>
+            <option value="for_review">For Review</option>
+            <option value="revision">Revision</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div className="text-xs text-[var(--text-muted)]">
+          Showing{" "}
+          <span className="font-semibold text-[var(--text-primary)]">
+            {filteredCommissions.length}
+          </span>{" "}
+          commissions
+        </div>
+      </div>
+
+      {/* Commissions Table */}
+      {filteredCommissions.length > 0 ? (
+        <Card noPadding>
+          <div className="overflow-x-auto select-text">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text-secondary)] font-semibold uppercase tracking-wider">
+                  <th className="px-5 py-3">Commission Job</th>
+                  <th className="px-4 py-3">Client</th>
+                  <th className="px-4 py-3 text-right">Price</th>
+                  <th className="px-4 py-3 text-right">
+                    Deposit ({defaultDepositPct}%)
+                  </th>
+                  <th className="px-4 py-3 text-right">Remaining</th>
+                  <th className="px-4 py-3 text-center">Payment</th>
+                  <th className="px-4 py-3 text-center">Status</th>
+                  <th className="px-5 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border-subtle)]">
+                {filteredCommissions.map((comm) => (
+                  <tr
+                    key={comm.id}
+                    className="hover:bg-[var(--surface-muted)] transition-colors"
+                  >
+                    <td className="px-5 py-3.5">
+                      <div className="font-semibold text-[var(--text-primary)]">
+                        {comm.title}
+                      </div>
+                      <div className="text-[11px] text-[var(--text-muted)]">
+                        {comm.commission_type || "Standard"}
+                        {comm.project_name ? ` • ${comm.project_name}` : ""}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 font-medium text-[var(--text-primary)]">
+                      {comm.client_name}
+                    </td>
+                    <td className="px-4 py-3.5 text-right font-mono tabular-nums text-[var(--text-primary)] font-semibold">
+                      {formatCents(comm.price_cents, currencySymbol)}
+                    </td>
+                    <td className="px-4 py-3.5 text-right font-mono tabular-nums text-[var(--primary)] font-medium">
+                      {formatCents(comm.deposit_amount_cents, currencySymbol)}
+                    </td>
+                    <td className="px-4 py-3.5 text-right font-mono tabular-nums font-bold text-[var(--color-warning)]">
+                      {formatCents(
+                        comm.remaining_balance_cents,
+                        currencySymbol,
+                      )}
+                    </td>
+                    <td className="px-4 py-3.5 text-center">
+                      {getPaymentStatusBadge(comm.payment_status)}
+                    </td>
+                    <td className="px-4 py-3.5 text-center">
+                      <select
+                        value={comm.status}
+                        onChange={(e) =>
+                          handleUpdateStatus(comm.id, e.target.value)
+                        }
+                        className="text-[11px] font-semibold rounded px-2 py-0.5 border border-[var(--border-subtle)] bg-[var(--surface-muted)] text-[var(--text-primary)] focus:outline-none cursor-pointer"
+                        aria-label={`Update status for ${comm.title}`}
+                      >
+                        <option value="inquiry">Inquiry</option>
+                        <option value="quoted">Quoted</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="for_review">For Review</option>
+                        <option value="revision">Revision</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </td>
+                    <td className="px-5 py-3.5 text-right">
+                      <button
+                        onClick={() => handleDeleteCommission(comm.id)}
+                        className="p-1 rounded text-[var(--text-muted)] hover:text-red-600 hover:bg-red-500/10 transition-colors"
+                        title="Delete / Cancel Commission"
+                        aria-label={`Delete commission ${comm.title}`}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      ) : (
+        !isLoading && (
+          <EmptyState
+            icon={<Sparkles size={28} />}
+            title="No commissions found"
+            description={
+              searchQuery
+                ? `No commissions matched "${searchQuery}".`
+                : "Create your first commission to start tracking freelance deliverables, deposits, and balances."
+            }
+            actionLabel="New Commission"
+            actionIcon={<Plus size={14} />}
+            onAction={() => setIsCreateModalOpen(true)}
+          />
+        )
+      )}
+
+      {/* Create Commission Modal */}
+      <Modal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        title="Create New Commission"
+        description="Specify job requirements, itemized line items, and upfront deposit percentage."
+        maxWidth="lg"
+      >
+        <form onSubmit={handleCreateCommission} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Client *"
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+              required
+            >
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+
+            <Select
+              label="Related Project (Optional)"
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+            >
+              <option value="">None (Stand-alone Commission)</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.client_name})
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <Input
+                label="Commission Title *"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Character Illustration Full Body"
+                required
+                autoFocus
+              />
+            </div>
+            <Input
+              label="Type / Category"
+              value={commissionType}
+              onChange={(e) => setCommissionType(e.target.value)}
+              placeholder="Illustration, Writing..."
+            />
+          </div>
+
+          {/* Pricing & Deposit Section */}
+          <div className="p-4 rounded-lg bg-[var(--surface-muted)] border border-[var(--border-subtle)] space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-xs font-semibold text-[var(--text-primary)]">
+                Pricing & Deposit Schedule
+              </div>
+              <button
+                type="button"
+                onClick={addLineItem}
+                className="text-xs text-[var(--primary)] font-medium hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <Plus size={12} />
+                <span>Add Line Item</span>
+              </button>
+            </div>
+
+            {/* Line items if any */}
+            {lineItems.map((item, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Item description (e.g. Commercial License)"
+                  value={item.description}
+                  onChange={(e) =>
+                    updateLineItem(idx, "description", e.target.value)
+                  }
+                  className="flex-1 rounded border border-[var(--border-subtle)] px-2.5 py-1.5 text-xs bg-[var(--surface-card)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                />
+                <input
+                  type="number"
+                  placeholder="Qty"
+                  min="1"
+                  value={item.quantity}
+                  onChange={(e) =>
+                    updateLineItem(
+                      idx,
+                      "quantity",
+                      parseInt(e.target.value, 10) || 1,
+                    )
+                  }
+                  className="w-14 rounded border border-[var(--border-subtle)] px-2 py-1.5 text-xs bg-[var(--surface-card)] text-[var(--text-primary)] text-center font-mono focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                />
+                <input
+                  type="number"
+                  placeholder="Unit Price"
+                  value={
+                    item.unit_price_cents ? item.unit_price_cents / 100 : ""
+                  }
+                  onChange={(e) =>
+                    updateLineItem(
+                      idx,
+                      "unit_price_cents",
+                      Math.round(parseFloat(e.target.value || "0") * 100),
+                    )
+                  }
+                  className="w-24 rounded border border-[var(--border-subtle)] px-2.5 py-1.5 text-xs bg-[var(--surface-card)] text-[var(--text-primary)] text-right font-mono focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeLineItem(idx)}
+                  className="p-1 text-[var(--text-muted)] hover:text-red-600 transition-colors"
+                  aria-label="Remove line item"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            ))}
+
+            <div className="grid grid-cols-3 gap-3 pt-2 border-t border-[var(--border-subtle)]">
+              <Input
+                label={`Total Price (${currencySymbol}) *`}
+                value={priceInput}
+                onChange={(e) => setPriceInput(e.target.value)}
+                placeholder="2000"
+                required
+                prefixIcon={
+                  <span className="text-xs font-semibold text-[var(--text-muted)]">
+                    {currencySymbol}
+                  </span>
+                }
+              />
+              <Input
+                label="Deposit (%)"
+                type="number"
+                min="0"
+                max="100"
+                value={depositPct}
+                onChange={(e) =>
+                  setDepositPct(parseInt(e.target.value, 10) || 0)
+                }
+              />
+              <div>
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5 select-none">
+                  Calculated Deposit
+                </label>
+                <div className="py-2 text-xs font-mono font-bold text-[var(--primary)]">
+                  {formatCents(calculatedDeposit.depositCents, currencySymbol)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Date Requested"
+              type="date"
+              value={dateRequested}
+              onChange={(e) => setDateRequested(e.target.value)}
+            />
+            <Input
+              label="Delivery Deadline"
+              type="date"
+              value={deadline}
+              onChange={(e) => setDeadline(e.target.value)}
+            />
+          </div>
+
+          <Textarea
+            label="Commission Notes / Specs"
+            rows={2}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Character details, canvas resolution, delivery formats..."
+          />
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsCreateModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              disabled={isSubmitting || !title.trim() || !clientId}
+            >
+              {isSubmitting ? "Creating..." : "Save Commission"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+};

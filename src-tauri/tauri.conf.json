@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "freelancedesk",
+  "productName": "FreelanceDesk",
   "version": "0.0.1",
   "identifier": "com.carlodandan.freelancedesk",
   "build": {
@@ -12,9 +12,12 @@
   "app": {
     "windows": [
       {
-        "title": "freelancedesk",
-        "width": 800,
-        "height": 600
+        "title": "FreelanceDesk",
+        "width": 1280,
+        "height": 720,
+        "minWidth": 1024,
+        "minHeight": 650,
+        "resizable": true
       }
     ],
     "security": {
@@ -23,7 +26,16 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis", "msi"],
+    "createUpdaterArtifacts": true,
+    "windows": {
+      "webviewInstallMode": { "type": "downloadBootstrapper" },
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "installMode": "currentUser",
+        "languages": ["English"]
+      }
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -31,5 +43,17 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDczRjkxMjA0RkMyMTUwRDYKUldUV1VDSDhCQkw1YzlPZ3FBRm9tZ3ZuU1MwaHhZblY5bGlXZDc1S2s2dnBmb0k3RTB2TzBidFcK",
+      "endpoints": [
+        "https://github.com/carlodandan/freelancedesk/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      },
+      "active": true
+    }
   }
 }
