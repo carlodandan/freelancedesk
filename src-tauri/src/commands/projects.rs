@@ -106,7 +106,11 @@ pub fn create_project(
     .map_err(|e| e.to_string())?;
 
     let act_id = Uuid::new_v4().to_string();
-    let desc = format!("Project '{}' created for {}", input.name.trim(), client_name);
+    let desc = format!(
+        "Project '{}' created for {}",
+        input.name.trim(),
+        client_name
+    );
     let _ = conn.execute(
         "INSERT INTO activity_log (id, entity_type, entity_id, action, description) VALUES (?1, 'project', ?2, 'created', ?3)",
         params![act_id, id, desc],
@@ -155,7 +159,10 @@ pub fn update_project(
     .map_err(|e| e.to_string())?;
 
     let act_id = Uuid::new_v4().to_string();
-    let desc = format!("Project '{}' updated (status: {})", input.name, input.status);
+    let desc = format!(
+        "Project '{}' updated (status: {})",
+        input.name, input.status
+    );
     let _ = conn.execute(
         "INSERT INTO activity_log (id, entity_type, entity_id, action, description) VALUES (?1, 'project', ?2, 'updated', ?3)",
         params![act_id, input.id, desc],

@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
+    use crate::database::migrations::run_migrations;
     use rusqlite::{params, Connection};
     use uuid::Uuid;
-    use crate::database::migrations::run_migrations;
 
     fn create_test_db() -> Connection {
         let mut conn = Connection::open_in_memory().expect("Failed to open in-memory db");
@@ -16,7 +16,11 @@ mod tests {
 
         // Verify schema_migrations table has version 1
         let version: i32 = conn
-            .query_row("SELECT version FROM schema_migrations WHERE version = 1", [], |r| r.get(0))
+            .query_row(
+                "SELECT version FROM schema_migrations WHERE version = 1",
+                [],
+                |r| r.get(0),
+            )
             .expect("Migration 1 not found");
         assert_eq!(version, 1);
 
@@ -28,7 +32,11 @@ mod tests {
 
         // Verify default settings seeded
         let default_currency: String = conn
-            .query_row("SELECT value FROM settings WHERE key = 'currency_code'", [], |r| r.get(0))
+            .query_row(
+                "SELECT value FROM settings WHERE key = 'currency_code'",
+                [],
+                |r| r.get(0),
+            )
             .expect("Failed to query currency_code");
         assert_eq!(default_currency, "PHP");
     }
@@ -75,18 +83,30 @@ mod tests {
 
         // Verify item exists
         let item_count: i64 = conn
-            .query_row("SELECT COUNT(1) FROM commission_items WHERE commission_id = ?1", params![comm_id], |r| r.get(0))
+            .query_row(
+                "SELECT COUNT(1) FROM commission_items WHERE commission_id = ?1",
+                params![comm_id],
+                |r| r.get(0),
+            )
             .unwrap();
         assert_eq!(item_count, 1);
 
         // Delete commission
-        conn.execute("DELETE FROM commissions WHERE id = ?1;", params![comm_id]).unwrap();
+        conn.execute("DELETE FROM commissions WHERE id = ?1;", params![comm_id])
+            .unwrap();
 
         // Verify commission_items was cascade deleted
         let item_count_after: i64 = conn
-            .query_row("SELECT COUNT(1) FROM commission_items WHERE id = ?1", params![item_id], |r| r.get(0))
+            .query_row(
+                "SELECT COUNT(1) FROM commission_items WHERE id = ?1",
+                params![item_id],
+                |r| r.get(0),
+            )
             .unwrap();
-        assert_eq!(item_count_after, 0, "Commission items were not cascade deleted!");
+        assert_eq!(
+            item_count_after, 0,
+            "Commission items were not cascade deleted!"
+        );
     }
 
     #[test]
@@ -97,7 +117,8 @@ mod tests {
         conn.execute(
             "INSERT INTO clients (id, name) VALUES (?1, 'Maria Santos');",
             params![client_id],
-        ).unwrap();
+        )
+        .unwrap();
 
         let comm_id = Uuid::new_v4().to_string();
         conn.execute(
@@ -107,7 +128,10 @@ mod tests {
 
         // Attempting to delete client should fail because ON DELETE RESTRICT is set
         let del_res = conn.execute("DELETE FROM clients WHERE id = ?1;", params![client_id]);
-        assert!(del_res.is_err(), "Deleting client with active commissions should be restricted!");
+        assert!(
+            del_res.is_err(),
+            "Deleting client with active commissions should be restricted!"
+        );
     }
 
     #[test]
@@ -135,7 +159,11 @@ mod tests {
     fn test_invoice_sequential_numbering_logic() {
         let conn = create_test_db();
         let client_id = Uuid::new_v4().to_string();
-        conn.execute("INSERT INTO clients (id, name) VALUES (?1, 'Juan Dela Cruz');", params![client_id]).unwrap();
+        conn.execute(
+            "INSERT INTO clients (id, name) VALUES (?1, 'Juan Dela Cruz');",
+            params![client_id],
+        )
+        .unwrap();
 
         let current_year = chrono::Utc::now().format("%Y").to_string();
         let prefix = format!("INV-{}-", current_year);
@@ -173,7 +201,11 @@ mod tests {
     fn test_commission_payment_balance_deduction() {
         let conn = create_test_db();
         let client_id = Uuid::new_v4().to_string();
-        conn.execute("INSERT INTO clients (id, name) VALUES (?1, 'Studio Client');", params![client_id]).unwrap();
+        conn.execute(
+            "INSERT INTO clients (id, name) VALUES (?1, 'Studio Client');",
+            params![client_id],
+        )
+        .unwrap();
 
         let comm_id = Uuid::new_v4().to_string();
         let price_cents = 500000; // ₱5,000.00
@@ -254,12 +286,18 @@ mod tests {
         let mut dst_conn = Connection::open_in_memory().unwrap();
         {
             let backup = Backup::new(&src_conn, &mut dst_conn).unwrap();
-            backup.run_to_completion(100, Duration::from_millis(10), None).unwrap();
+            backup
+                .run_to_completion(100, Duration::from_millis(10), None)
+                .unwrap();
         }
 
         // Verify dst_conn has the client and schema_migrations
         let count: i64 = dst_conn
-            .query_row("SELECT COUNT(1) FROM clients WHERE id = ?1", params![client_id], |r| r.get(0))
+            .query_row(
+                "SELECT COUNT(1) FROM clients WHERE id = ?1",
+                params![client_id],
+                |r| r.get(0),
+            )
             .unwrap();
         assert_eq!(count, 1);
 
@@ -272,7 +310,9 @@ mod tests {
         let mut restored_conn = Connection::open_in_memory().unwrap();
         {
             let restore = Backup::new(&dst_conn, &mut restored_conn).unwrap();
-            restore.run_to_completion(100, Duration::from_millis(10), None).unwrap();
+            restore
+                .run_to_completion(100, Duration::from_millis(10), None)
+                .unwrap();
         }
 
         let integrity: String = restored_conn
@@ -281,7 +321,11 @@ mod tests {
         assert_eq!(integrity, "ok");
 
         let restored_client_name: String = restored_conn
-            .query_row("SELECT name FROM clients WHERE id = ?1", params![client_id], |r| r.get(0))
+            .query_row(
+                "SELECT name FROM clients WHERE id = ?1",
+                params![client_id],
+                |r| r.get(0),
+            )
             .unwrap();
         assert_eq!(restored_client_name, "Backup Client");
     }

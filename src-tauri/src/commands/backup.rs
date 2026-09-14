@@ -37,8 +37,8 @@ pub fn restore_backup(
     }
 
     // Verify source database integrity and FreelanceDesk schema
-    let verify_conn = Connection::open(source_path)
-        .map_err(|e| format!("Invalid SQLite backup file: {}", e))?;
+    let verify_conn =
+        Connection::open(source_path).map_err(|e| format!("Invalid SQLite backup file: {}", e))?;
 
     let check: String = verify_conn
         .query_row("PRAGMA integrity_check;", [], |r| r.get(0))
@@ -56,7 +56,9 @@ pub fn restore_backup(
         )
         .unwrap_or(false);
     if !has_schema {
-        return Err("Backup file does not contain a valid FreelanceDesk database schema".to_string());
+        return Err(
+            "Backup file does not contain a valid FreelanceDesk database schema".to_string(),
+        );
     }
 
     let backups_dir = state.app_data_dir.join("backups");

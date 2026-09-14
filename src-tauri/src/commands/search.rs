@@ -139,8 +139,5 @@ pub fn global_search(
         }
     }
 
-    Ok(GlobalSearchResult {
-        query,
-        results,
-    })
+    Ok(GlobalSearchResult { query, results })
 }

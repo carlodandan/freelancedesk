@@ -77,18 +77,22 @@ pub fn create_payment(
 
     let project_name: Option<String> = match &input.project_id {
         Some(pid) => conn
-            .query_row("SELECT name FROM projects WHERE id = ?1", params![pid], |r| {
-                r.get(0)
-            })
+            .query_row(
+                "SELECT name FROM projects WHERE id = ?1",
+                params![pid],
+                |r| r.get(0),
+            )
             .ok(),
         None => None,
     };
 
     let commission_title: Option<String> = match &input.commission_id {
         Some(cid) => conn
-            .query_row("SELECT title FROM commissions WHERE id = ?1", params![cid], |r| {
-                r.get(0)
-            })
+            .query_row(
+                "SELECT title FROM commissions WHERE id = ?1",
+                params![cid],
+                |r| r.get(0),
+            )
             .ok(),
         None => None,
     };

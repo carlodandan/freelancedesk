@@ -8,7 +8,10 @@ use uuid::Uuid;
 fn validate_entity_type(entity_type: &str) -> Result<(), String> {
     match entity_type {
         "client" | "project" | "commission" | "expense" | "invoice" => Ok(()),
-        _ => Err(format!("Unsupported or invalid entity type: {}", entity_type)),
+        _ => Err(format!(
+            "Unsupported or invalid entity type: {}",
+            entity_type
+        )),
     }
 }
 
@@ -75,7 +78,10 @@ pub fn add_attachment(
         clean_name
     };
 
-    let target_dir = state.app_data_dir.join("attachments").join(&input.entity_type);
+    let target_dir = state
+        .app_data_dir
+        .join("attachments")
+        .join(&input.entity_type);
     fs::create_dir_all(&target_dir).map_err(|e| e.to_string())?;
 
     let stored_file_name = format!("{}_{}", id, clean_name);
@@ -145,7 +151,8 @@ pub fn delete_attachment(state: State<'_, AppState>, id: String) -> Result<bool,
     if let Some(path_str) = storage_path {
         let path = std::path::Path::new(&path_str);
         if path.exists() {
-            fs::remove_file(path).map_err(|e| format!("Failed to remove attachment file: {}", e))?;
+            fs::remove_file(path)
+                .map_err(|e| format!("Failed to remove attachment file: {}", e))?;
         }
     }
 

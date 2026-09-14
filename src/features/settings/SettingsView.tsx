@@ -16,6 +16,7 @@ import { Button } from "../../components/ui/Button";
 import { useToast } from "../../components/ui/Toast";
 import { AppSettings, AppInfo } from "../../types/settings";
 import { tauriService } from "../../services/tauri";
+import { UpdateCheck } from "../../components/UpdateCheck";
 
 interface SettingsViewProps {
   settings: AppSettings;
@@ -32,9 +33,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<"general" | "invoice" | "storage">(
-    "general",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "general" | "invoice" | "storage" | "updates"
+  >("general");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,19 +72,23 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             database settings.
           </p>
         </div>
-        <Button
-          variant="primary"
-          size="sm"
-          icon={savedSuccess ? <CheckCircle2 size={15} /> : <Save size={15} />}
-          onClick={handleSubmit}
-          disabled={isSaving}
-        >
-          {isSaving
-            ? "Saving..."
-            : savedSuccess
-              ? "Settings Saved"
-              : "Save Changes"}
-        </Button>
+        {activeTab !== "updates" && (
+          <Button
+            variant="primary"
+            size="sm"
+            icon={
+              savedSuccess ? <CheckCircle2 size={15} /> : <Save size={15} />
+            }
+            onClick={handleSubmit}
+            disabled={isSaving}
+          >
+            {isSaving
+              ? "Saving..."
+              : savedSuccess
+                ? "Settings Saved"
+                : "Save Changes"}
+          </Button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -117,6 +122,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           }`}
         >
           Local Database & Storage
+        </button>
+        <button
+          onClick={() => setActiveTab("updates")}
+          className={`pb-2.5 transition-colors ${
+            activeTab === "updates"
+              ? "text-[#854D0E] border-b-2 border-[#854D0E]"
+              : "text-[#78716C] hover:text-[#1C1917]"
+          }`}
+        >
+          Software Updates
         </button>
       </div>
 
@@ -518,6 +533,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
               </div>
             </Card>
+          </div>
+        )}
+
+        {activeTab === "updates" && (
+          <div className="space-y-5">
+            <UpdateCheck currentVersion={appInfo?.version ?? "0.0.1"} />
           </div>
         )}
       </form>

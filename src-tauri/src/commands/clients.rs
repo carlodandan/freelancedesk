@@ -111,10 +111,7 @@ pub fn create_client(
 }
 
 #[tauri::command]
-pub fn update_client(
-    state: State<'_, AppState>,
-    input: UpdateClientInput,
-) -> Result<bool, String> {
+pub fn update_client(state: State<'_, AppState>, input: UpdateClientInput) -> Result<bool, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;
 
     conn.execute(

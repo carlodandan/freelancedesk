@@ -19,6 +19,17 @@ vi.mock("@tauri-apps/plugin-opener", () => ({
   openUrl: vi.fn(),
 }));
 
+// Mock Tauri plugin updater
+vi.mock("@tauri-apps/plugin-updater", () => ({
+  check: vi.fn().mockResolvedValue(null),
+}));
+
+// Mock Tauri plugin process
+vi.mock("@tauri-apps/plugin-process", () => ({
+  relaunch: vi.fn().mockResolvedValue(undefined),
+  exit: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Mock browser dialogs
 window.alert = vi.fn();
 window.confirm = vi.fn(() => true);

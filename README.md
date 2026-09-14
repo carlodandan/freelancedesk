@@ -105,6 +105,12 @@ Rather than burdening solo creators with bloated corporate CRM complexity, month
 * **Obsidian Dark**: High-contrast dark mode tailored for late-night editing sessions.
 * Instant live theme switching without page reloads.
 
+### 🔄 11. Seamless Auto-Updater (Tauri v2 + GitHub Releases)
+* Built-in minisign-verified update pipeline powered by `@tauri-apps/plugin-updater`.
+* Background startup watcher with non-intrusive toast notifications when new releases arrive.
+* Full Settings panel check interface with download progress bar, release notes, and single-click restart.
+* Windows passive MSI installer mode with atomic file replacement and automatic relaunch.
+
 ---
 
 ## 🏛️ Architecture & Tech Stack

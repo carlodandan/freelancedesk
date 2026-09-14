@@ -72,9 +72,11 @@ pub fn create_expense(
 
     let project_name: Option<String> = match &input.project_id {
         Some(pid) => conn
-            .query_row("SELECT name FROM projects WHERE id = ?1", params![pid], |r| {
-                r.get(0)
-            })
+            .query_row(
+                "SELECT name FROM projects WHERE id = ?1",
+                params![pid],
+                |r| r.get(0),
+            )
             .ok(),
         None => None,
     };
@@ -98,7 +100,11 @@ pub fn create_expense(
     .map_err(|e| e.to_string())?;
 
     let act_id = Uuid::new_v4().to_string();
-    let desc = format!("Expense logged: {} ({})", input.description.trim(), category_name);
+    let desc = format!(
+        "Expense logged: {} ({})",
+        input.description.trim(),
+        category_name
+    );
     let _ = conn.execute(
         "INSERT INTO activity_log (id, entity_type, entity_id, action, description) VALUES (?1, 'expense', ?2, 'created', ?3)",
         params![act_id, id, desc],

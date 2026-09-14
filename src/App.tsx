@@ -17,8 +17,11 @@ import { DashboardSummary } from "./types/dashboard";
 import { tauriService } from "./services/tauri";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "./components/ui/Button";
+import { useToast } from "./components/ui/Toast";
+import { UpdateWatcher } from "./components/UpdateWatcher";
 
 export function App() {
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<NavigationTab>("dashboard");
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
@@ -132,6 +135,14 @@ export function App() {
         refreshSummary();
       }}
     >
+      <UpdateWatcher
+        onAvailable={(version) =>
+          showToast({
+            type: "info",
+            message: `v${version} is available — install it from Settings.`,
+          })
+        }
+      />
       {activeTab === "dashboard" && (
         <DashboardView
           summary={dashboardSummary}
