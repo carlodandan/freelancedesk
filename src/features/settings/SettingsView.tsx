@@ -74,12 +74,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
         {activeTab !== "updates" && (
           <Button
+            form="settings-form"
+            type="submit"
             variant="primary"
             size="sm"
             icon={
               savedSuccess ? <CheckCircle2 size={15} /> : <Save size={15} />
             }
-            onClick={handleSubmit}
             disabled={isSaving}
           >
             {isSaving
@@ -136,7 +137,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       </div>
 
       {/* Forms */}
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form id="settings-form" onSubmit={handleSubmit} className="space-y-6">
         {activeTab === "general" && (
           <div className="space-y-5">
             <Card

@@ -34,10 +34,16 @@ export function App() {
     setIsLoading(true);
     setError(null);
     try {
-      const [fetchedSettings, fetchedInfo, fetchedSummary] = await Promise.all([
-        tauriService.getSettings(),
-        tauriService.getAppInfo(),
-        tauriService.getDashboardSummary(),
+      const fetchedSettings = await tauriService.getSettings();
+      const [fetchedInfo, fetchedSummary] = await Promise.all([
+        tauriService.getAppInfo().catch((err) => {
+          console.error("Failed to load optional app info:", err);
+          return null;
+        }),
+        tauriService.getDashboardSummary().catch((err) => {
+          console.error("Failed to load optional dashboard summary:", err);
+          return null;
+        }),
       ]);
       setSettings(fetchedSettings);
       setAppInfo(fetchedInfo);

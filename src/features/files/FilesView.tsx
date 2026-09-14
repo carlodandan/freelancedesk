@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Upload, Trash2, File, Image, FileText } from "lucide-react";
 import { Card } from "../../components/ui/Card";
+import { Button } from "../../components/ui/Button";
 import {
   AttachmentItem,
   ClientItem,
@@ -14,23 +15,28 @@ export const FilesView: React.FC = () => {
   const [selectedEntityId, setSelectedEntityId] = useState("");
   const entityType = "client";
   const [isUploading, setIsUploading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const activeEntityIdRef = useRef("");
 
   const loadData = async () => {
+    setLoadError(null);
     try {
       const clientList = await tauriService.getClients();
       setClients(clientList);
-      if (clientList.length > 0 && !selectedEntityId) {
-        const initialId = clientList[0].id;
-        setSelectedEntityId(initialId);
-        activeEntityIdRef.current = initialId;
-        const atts = await tauriService.getAttachments(entityType, initialId);
-        if (activeEntityIdRef.current === initialId) {
+      const targetId = selectedEntityId || clientList[0]?.id || "";
+      if (targetId) {
+        if (!selectedEntityId) setSelectedEntityId(targetId);
+        activeEntityIdRef.current = targetId;
+        const atts = await tauriService.getAttachments(entityType, targetId);
+        if (activeEntityIdRef.current === targetId) {
           setAttachments(atts);
         }
+      } else {
+        setAttachments([]);
       }
     } catch (err) {
       console.error("Failed to load files data:", err);
+      setLoadError("Files and client folders could not be loaded.");
     }
   };
 
@@ -46,12 +52,14 @@ export const FilesView: React.FC = () => {
       return;
     }
     try {
+      setLoadError(null);
       const atts = await tauriService.getAttachments(entityType, eid);
       if (activeEntityIdRef.current === eid) {
         setAttachments(atts);
       }
     } catch (err) {
       console.error("Failed to fetch attachments:", err);
+      setLoadError("Files for this client could not be loaded.");
     }
   };
 
@@ -152,7 +160,19 @@ export const FilesView: React.FC = () => {
       </div>
 
       {/* Attachment list */}
-      {attachments.length > 0 ? (
+      {loadError ? (
+        <div className="p-12 text-center text-xs text-[#78716C] bg-white border border-[#E5E0D5] rounded-lg">
+          <p>{loadError}</p>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={loadData}
+            className="mt-4"
+          >
+            Retry
+          </Button>
+        </div>
+      ) : attachments.length > 0 ? (
         <Card noPadding>
           <div className="divide-y divide-[#ECE8DE]">
             {attachments.map((att) => (

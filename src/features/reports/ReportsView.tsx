@@ -22,14 +22,17 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ currencySymbol }) => {
     null,
   );
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadData = async () => {
     setIsLoading(true);
+    setLoadError(null);
     try {
       const data = await tauriService.getFinancialReports();
       setReportData(data);
     } catch (err) {
       console.error("Failed to load reports:", err);
+      setLoadError("Financial reports could not be loaded.");
     } finally {
       setIsLoading(false);
     }
@@ -93,6 +96,18 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ currencySymbol }) => {
       {isLoading ? (
         <div className="p-12 text-center text-xs text-[#8C867A] bg-white border border-[#E5E0D5] rounded-lg">
           Loading financial performance ledger...
+        </div>
+      ) : loadError ? (
+        <div className="p-12 text-center text-xs text-[#78716C] bg-white border border-[#E5E0D5] rounded-lg">
+          <p>{loadError}</p>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={loadData}
+            className="mt-4"
+          >
+            Retry
+          </Button>
         </div>
       ) : (
         <>

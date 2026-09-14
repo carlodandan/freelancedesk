@@ -23,6 +23,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [clients, setClients] = useState<ClientItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -39,6 +40,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
 
   const loadData = async () => {
     setIsLoading(true);
+    setLoadError(null);
     try {
       const [projData, clientData] = await Promise.all([
         tauriService.getProjects(),
@@ -51,6 +53,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
       }
     } catch (err) {
       console.error("Failed to load project data:", err);
+      setLoadError("Project records could not be loaded.");
     } finally {
       setIsLoading(false);
     }
@@ -200,7 +203,15 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
       </div>
 
       {/* Projects Table */}
-      {filteredProjects.length > 0 ? (
+      {loadError && !isLoading ? (
+        <EmptyState
+          icon={<Briefcase size={28} />}
+          title="Unable to load projects"
+          description={loadError}
+          actionLabel="Retry"
+          onAction={loadData}
+        />
+      ) : filteredProjects.length > 0 ? (
         <Card noPadding>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">

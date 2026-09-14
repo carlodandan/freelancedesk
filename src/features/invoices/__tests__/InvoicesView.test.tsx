@@ -5,6 +5,7 @@ import { InvoicesView } from "../InvoicesView";
 import { tauriService } from "../../../services/tauri";
 import { InvoiceItem, ClientItem } from "../../../types/entities";
 import { AppSettings } from "../../../types/settings";
+import { ToastProvider } from "../../../components/ui/Toast";
 
 const mockSettings: AppSettings = {
   business_name: "Creative Studio",
@@ -121,6 +122,33 @@ describe("InvoicesView Component", () => {
         }),
       );
     });
+  });
+
+  it("rejects a negative tax rate before creating an invoice", async () => {
+    render(
+      <ToastProvider>
+        <InvoicesView currencySymbol="₱" settings={mockSettings} />
+      </ToastProvider>,
+    );
+    const user = userEvent.setup();
+
+    await waitFor(() => {
+      expect(screen.getByText("INV-2026-001")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: /Draft Invoice/i }));
+    fireEvent.change(screen.getByLabelText("Tax Rate (%)"), {
+      target: { value: "-1" },
+    });
+    const submitButton = screen.getByRole("button", {
+      name: /Generate Invoice/i,
+    });
+    fireEvent.submit(submitButton.closest("form")!);
+
+    expect(tauriService.createInvoice).not.toHaveBeenCalled();
+    expect(
+      screen.getByText("Tax rate must be a non-negative number."),
+    ).toBeInTheDocument();
   });
 
   it("allows updating invoice status from dropdown", async () => {

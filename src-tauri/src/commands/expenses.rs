@@ -45,12 +45,8 @@ pub fn get_expenses(
         })
         .map_err(|e| e.to_string())?;
 
-    let mut expenses = Vec::new();
-    for exp in rows.flatten() {
-        expenses.push(exp);
-    }
-
-    Ok(expenses)
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -58,7 +54,7 @@ pub fn create_expense(
     state: State<'_, AppState>,
     input: CreateExpenseInput,
 ) -> Result<ExpenseItem, String> {
-    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let mut conn = state.db.lock().map_err(|e| e.to_string())?;
 
     let id = Uuid::new_v4().to_string();
 
@@ -71,17 +67,20 @@ pub fn create_expense(
         .map_err(|_| "Expense category not found".to_string())?;
 
     let project_name: Option<String> = match &input.project_id {
-        Some(pid) => conn
-            .query_row(
+        Some(pid) => Some(
+            conn.query_row(
                 "SELECT name FROM projects WHERE id = ?1",
                 params![pid],
                 |r| r.get(0),
             )
-            .ok(),
+            .map_err(|e| format!("Failed to find expense project: {}", e))?,
+        ),
         None => None,
     };
 
-    conn.execute(
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+    tx.execute(
         "INSERT INTO expenses (
             id, project_id, category_id, amount_cents, date, description, payment_method, receipt_file_path, notes, created_at
         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, datetime('now'))",
@@ -105,10 +104,13 @@ pub fn create_expense(
         input.description.trim(),
         category_name
     );
-    let _ = conn.execute(
+    tx.execute(
         "INSERT INTO activity_log (id, entity_type, entity_id, action, description) VALUES (?1, 'expense', ?2, 'created', ?3)",
         params![act_id, id, desc],
-    );
+    )
+    .map_err(|e| e.to_string())?;
+
+    tx.commit().map_err(|e| e.to_string())?;
 
     Ok(ExpenseItem {
         id,
@@ -128,16 +130,21 @@ pub fn create_expense(
 
 #[tauri::command]
 pub fn delete_expense(state: State<'_, AppState>, id: String) -> Result<bool, String> {
-    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let mut conn = state.db.lock().map_err(|e| e.to_string())?;
 
-    conn.execute("DELETE FROM expenses WHERE id = ?1", params![id])
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+    tx.execute("DELETE FROM expenses WHERE id = ?1", params![id])
         .map_err(|e| e.to_string())?;
 
     let act_id = Uuid::new_v4().to_string();
-    let _ = conn.execute(
+    tx.execute(
         "INSERT INTO activity_log (id, entity_type, entity_id, action, description) VALUES (?1, 'expense', ?2, 'deleted', 'Expense deleted')",
         params![act_id, id],
-    );
+    )
+    .map_err(|e| e.to_string())?;
+
+    tx.commit().map_err(|e| e.to_string())?;
 
     Ok(true)
 }
@@ -163,12 +170,8 @@ pub fn get_expense_categories(
         })
         .map_err(|e| e.to_string())?;
 
-    let mut categories = Vec::new();
-    for c in rows.flatten() {
-        categories.push(c);
-    }
-
-    Ok(categories)
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

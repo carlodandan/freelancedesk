@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Card } from "../../components/ui/Card";
 import { Badge } from "../../components/ui/Badge";
+import { Button } from "../../components/ui/Button";
 import { tauriService } from "../../services/tauri";
 import { NavigationTab } from "../../types/navigation";
 
@@ -27,68 +28,70 @@ interface DeadlineEvent {
 export const CalendarView: React.FC<CalendarViewProps> = ({ onNavigate }) => {
   const [events, setEvents] = useState<DeadlineEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const loadEvents = async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const [projects, commissions, invoices] = await Promise.all([
+        tauriService.getProjects(),
+        tauriService.getCommissions(),
+        tauriService.getInvoices(),
+      ]);
+
+      const eventList: DeadlineEvent[] = [];
+
+      for (const p of projects) {
+        if (p.deadline) {
+          eventList.push({
+            id: p.id,
+            type: "project",
+            title: p.name,
+            clientName: p.client_name,
+            date: p.deadline,
+            status: p.status,
+          });
+        }
+      }
+
+      for (const c of commissions) {
+        if (c.deadline) {
+          eventList.push({
+            id: c.id,
+            type: "commission",
+            title: c.title,
+            clientName: c.client_name,
+            date: c.deadline,
+            status: c.status,
+          });
+        }
+      }
+
+      for (const inv of invoices) {
+        if (inv.due_date) {
+          eventList.push({
+            id: inv.id,
+            type: "invoice",
+            title: `Invoice #${inv.invoice_number}`,
+            clientName: inv.client_name,
+            date: inv.due_date,
+            status: inv.status,
+          });
+        }
+      }
+
+      eventList.sort((a, b) => a.date.localeCompare(b.date));
+      setEvents(eventList);
+    } catch (err) {
+      console.error("Failed to load deadline events:", err);
+      setLoadError("Scheduled deadlines could not be loaded.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadEvents = async () => {
-      setIsLoading(true);
-      try {
-        const [projects, commissions, invoices] = await Promise.all([
-          tauriService.getProjects(),
-          tauriService.getCommissions(),
-          tauriService.getInvoices(),
-        ]);
-
-        const eventList: DeadlineEvent[] = [];
-
-        for (const p of projects) {
-          if (p.deadline) {
-            eventList.push({
-              id: p.id,
-              type: "project",
-              title: p.name,
-              clientName: p.client_name,
-              date: p.deadline,
-              status: p.status,
-            });
-          }
-        }
-
-        for (const c of commissions) {
-          if (c.deadline) {
-            eventList.push({
-              id: c.id,
-              type: "commission",
-              title: c.title,
-              clientName: c.client_name,
-              date: c.deadline,
-              status: c.status,
-            });
-          }
-        }
-
-        for (const inv of invoices) {
-          if (inv.due_date) {
-            eventList.push({
-              id: inv.id,
-              type: "invoice",
-              title: `Invoice #${inv.invoice_number}`,
-              clientName: inv.client_name,
-              date: inv.due_date,
-              status: inv.status,
-            });
-          }
-        }
-
-        // Sort chronologically
-        eventList.sort((a, b) => a.date.localeCompare(b.date));
-        setEvents(eventList);
-      } catch (err) {
-        console.error("Failed to load deadline events:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     loadEvents();
   }, []);
 
@@ -118,6 +121,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onNavigate }) => {
         {isLoading ? (
           <div className="p-12 text-center text-xs text-[#8C867A]">
             Loading scheduled delivery & payment deadlines...
+          </div>
+        ) : loadError ? (
+          <div className="p-12 text-center text-xs text-[#78716C]">
+            <p>{loadError}</p>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={loadEvents}
+              className="mt-4"
+            >
+              Retry
+            </Button>
           </div>
         ) : events.length > 0 ? (
           <div className="divide-y divide-[#ECE8DE]">

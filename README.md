@@ -324,7 +324,7 @@ Data is stored within the standard Windows application data folder:
 
 To manually back up your data, you can simply:
 1. Use the in-app **Backup Now** button in **Settings**.
-2. Or copy the `%APPDATA%/com.carlodandan.freelancedesk/` directory directly to an external drive or private personal cloud folder (e.g., OneDrive, Google Drive, Proton Drive).
+2. Or fully close FreelanceDesk before copying the `%APPDATA%/com.carlodandan.freelancedesk/` directory to an external drive or private personal cloud folder (e.g., OneDrive, Google Drive, Proton Drive). Never copy the live database directory while the app is running.
 
 ---
 

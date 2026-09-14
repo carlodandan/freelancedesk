@@ -50,12 +50,8 @@ pub fn get_payments(
         })
         .map_err(|e| e.to_string())?;
 
-    let mut payments = Vec::new();
-    for p in rows.flatten() {
-        payments.push(p);
-    }
-
-    Ok(payments)
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -75,28 +71,6 @@ pub fn create_payment(
         )
         .map_err(|_| "Client not found".to_string())?;
 
-    let project_name: Option<String> = match &input.project_id {
-        Some(pid) => conn
-            .query_row(
-                "SELECT name FROM projects WHERE id = ?1",
-                params![pid],
-                |r| r.get(0),
-            )
-            .ok(),
-        None => None,
-    };
-
-    let commission_title: Option<String> = match &input.commission_id {
-        Some(cid) => conn
-            .query_row(
-                "SELECT title FROM commissions WHERE id = ?1",
-                params![cid],
-                |r| r.get(0),
-            )
-            .ok(),
-        None => None,
-    };
-
     // Auto-generate receipt number if omitted
     let receipt_number = input.receipt_number.unwrap_or_else(|| {
         let date_compact = chrono::Utc::now().format("%Y%m%d").to_string();
@@ -105,6 +79,54 @@ pub fn create_payment(
     });
 
     let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+    let project_name: Option<String> = match &input.project_id {
+        Some(project_id) => Some(
+            tx.query_row(
+                "SELECT name FROM projects WHERE id = ?1 AND client_id = ?2",
+                params![project_id, input.client_id],
+                |row| row.get(0),
+            )
+            .map_err(|e| match e {
+                rusqlite::Error::QueryReturnedNoRows => {
+                    "Selected project does not belong to the selected client".to_string()
+                }
+                _ => e.to_string(),
+            })?,
+        ),
+        None => None,
+    };
+
+    let commission_title: Option<String> = match &input.commission_id {
+        Some(commission_id) => Some(
+            tx.query_row(
+                "SELECT title FROM commissions WHERE id = ?1 AND client_id = ?2",
+                params![commission_id, input.client_id],
+                |row| row.get(0),
+            )
+            .map_err(|e| match e {
+                rusqlite::Error::QueryReturnedNoRows => {
+                    "Selected commission does not belong to the selected client".to_string()
+                }
+                _ => e.to_string(),
+            })?,
+        ),
+        None => None,
+    };
+
+    if let Some(invoice_id) = &input.invoice_id {
+        tx.query_row(
+            "SELECT 1 FROM invoices WHERE id = ?1 AND client_id = ?2",
+            params![invoice_id, input.client_id],
+            |_| Ok(()),
+        )
+        .map_err(|e| match e {
+            rusqlite::Error::QueryReturnedNoRows => {
+                "Selected invoice does not belong to the selected client".to_string()
+            }
+            _ => e.to_string(),
+        })?;
+    }
 
     tx.execute(
         "INSERT INTO payments (
@@ -144,7 +166,7 @@ pub fn create_payment(
                 params![comm_id],
                 |r| r.get(0),
             )
-            .unwrap_or(0);
+            .map_err(|e| e.to_string())?;
 
         let new_remaining = if comm_price > total_paid {
             comm_price - total_paid
@@ -177,7 +199,7 @@ pub fn create_payment(
             [],
             |r| r.get(0),
         )
-        .unwrap_or_else(|_| "₱".to_string());
+        .map_err(|e| e.to_string())?;
 
     let act_id = Uuid::new_v4().to_string();
     let desc = format!(
@@ -187,10 +209,11 @@ pub fn create_payment(
         client_name,
         input.payment_method
     );
-    let _ = tx.execute(
+    tx.execute(
         "INSERT INTO activity_log (id, entity_type, entity_id, action, description) VALUES (?1, 'payment', ?2, 'payment_received', ?3)",
         params![act_id, id, desc],
-    );
+    )
+    .map_err(|e| e.to_string())?;
 
     tx.commit().map_err(|e| e.to_string())?;
 
@@ -225,7 +248,7 @@ pub fn delete_payment(state: State<'_, AppState>, id: String) -> Result<bool, St
             params![id],
             |r| r.get(0),
         )
-        .ok();
+        .map_err(|e| e.to_string())?;
 
     tx.execute("DELETE FROM payments WHERE id = ?1", params![id])
         .map_err(|e| e.to_string())?;
@@ -237,7 +260,7 @@ pub fn delete_payment(state: State<'_, AppState>, id: String) -> Result<bool, St
                 params![cid],
                 |r| Ok((r.get(0)?, r.get(1)?)),
             )
-            .unwrap_or((0, 0));
+            .map_err(|e| e.to_string())?;
 
         let total_paid: i64 = tx
             .query_row(
@@ -245,7 +268,7 @@ pub fn delete_payment(state: State<'_, AppState>, id: String) -> Result<bool, St
                 params![cid],
                 |r| r.get(0),
             )
-            .unwrap_or(0);
+            .map_err(|e| e.to_string())?;
 
         let new_remaining = if comm_price > total_paid {
             comm_price - total_paid
@@ -273,10 +296,11 @@ pub fn delete_payment(state: State<'_, AppState>, id: String) -> Result<bool, St
     }
 
     let act_id = Uuid::new_v4().to_string();
-    let _ = tx.execute(
+    tx.execute(
         "INSERT INTO activity_log (id, entity_type, entity_id, action, description) VALUES (?1, 'payment', ?2, 'deleted', 'Payment entry deleted')",
         params![act_id, id],
-    );
+    )
+    .map_err(|e| e.to_string())?;
 
     tx.commit().map_err(|e| e.to_string())?;
 

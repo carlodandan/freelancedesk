@@ -43,12 +43,8 @@ pub fn get_projects(
             .map_err(|e| e.to_string())?,
     };
 
-    let mut projects = Vec::new();
-    for p in rows.flatten() {
-        projects.push(p);
-    }
-
-    Ok(projects)
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())
 }
 
 fn map_project_row(row: &rusqlite::Row) -> rusqlite::Result<ProjectItem> {
@@ -74,7 +70,7 @@ pub fn create_project(
     state: State<'_, AppState>,
     input: CreateProjectInput,
 ) -> Result<ProjectItem, String> {
-    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let mut conn = state.db.lock().map_err(|e| e.to_string())?;
 
     let id = Uuid::new_v4().to_string();
     let status = input.status.unwrap_or_else(|| "planning".to_string());
@@ -88,7 +84,9 @@ pub fn create_project(
         )
         .map_err(|_| "Client not found".to_string())?;
 
-    conn.execute(
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+    tx.execute(
         "INSERT INTO projects (id, client_id, name, description, start_date, deadline, status, price_cents, notes, created_at, updated_at)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, datetime('now'), datetime('now'))",
         params![
@@ -111,10 +109,13 @@ pub fn create_project(
         input.name.trim(),
         client_name
     );
-    let _ = conn.execute(
+    tx.execute(
         "INSERT INTO activity_log (id, entity_type, entity_id, action, description) VALUES (?1, 'project', ?2, 'created', ?3)",
         params![act_id, id, desc],
-    );
+    )
+    .map_err(|e| e.to_string())?;
+
+    tx.commit().map_err(|e| e.to_string())?;
 
     Ok(ProjectItem {
         id,
@@ -138,9 +139,11 @@ pub fn update_project(
     state: State<'_, AppState>,
     input: UpdateProjectInput,
 ) -> Result<bool, String> {
-    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let mut conn = state.db.lock().map_err(|e| e.to_string())?;
 
-    conn.execute(
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+    tx.execute(
         "UPDATE projects
          SET client_id = ?1, name = ?2, description = ?3, start_date = ?4, deadline = ?5, status = ?6, price_cents = ?7, notes = ?8, updated_at = datetime('now')
          WHERE id = ?9",
@@ -163,29 +166,37 @@ pub fn update_project(
         "Project '{}' updated (status: {})",
         input.name, input.status
     );
-    let _ = conn.execute(
+    tx.execute(
         "INSERT INTO activity_log (id, entity_type, entity_id, action, description) VALUES (?1, 'project', ?2, 'updated', ?3)",
         params![act_id, input.id, desc],
-    );
+    )
+    .map_err(|e| e.to_string())?;
+
+    tx.commit().map_err(|e| e.to_string())?;
 
     Ok(true)
 }
 
 #[tauri::command]
 pub fn delete_project(state: State<'_, AppState>, id: String) -> Result<bool, String> {
-    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let mut conn = state.db.lock().map_err(|e| e.to_string())?;
 
-    conn.execute(
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+    tx.execute(
         "UPDATE projects SET status = 'archived', updated_at = datetime('now') WHERE id = ?1",
         params![id],
     )
     .map_err(|e| e.to_string())?;
 
     let act_id = Uuid::new_v4().to_string();
-    let _ = conn.execute(
+    tx.execute(
         "INSERT INTO activity_log (id, entity_type, entity_id, action, description) VALUES (?1, 'project', ?2, 'deleted', 'Project archived')",
         params![act_id, id],
-    );
+    )
+    .map_err(|e| e.to_string())?;
+
+    tx.commit().map_err(|e| e.to_string())?;
 
     Ok(true)
 }

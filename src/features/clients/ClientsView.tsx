@@ -20,6 +20,7 @@ interface ClientsViewProps {
 export const ClientsView: React.FC<ClientsViewProps> = ({ currencySymbol }) => {
   const [clients, setClients] = useState<ClientItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<ClientItem | null>(null);
@@ -37,11 +38,13 @@ export const ClientsView: React.FC<ClientsViewProps> = ({ currencySymbol }) => {
 
   const loadClients = async () => {
     setIsLoading(true);
+    setLoadError(null);
     try {
       const data = await tauriService.getClients();
       setClients(data);
     } catch (err) {
       console.error("Failed to load clients:", err);
+      setLoadError("Client records could not be loaded.");
     } finally {
       setIsLoading(false);
     }
@@ -172,7 +175,15 @@ export const ClientsView: React.FC<ClientsViewProps> = ({ currencySymbol }) => {
       </div>
 
       {/* Clients Table */}
-      {filteredClients.length > 0 ? (
+      {loadError && !isLoading ? (
+        <EmptyState
+          icon={<Users size={28} />}
+          title="Unable to load clients"
+          description={loadError}
+          actionLabel="Retry"
+          onAction={loadClients}
+        />
+      ) : filteredClients.length > 0 ? (
         <Card noPadding>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">

@@ -120,10 +120,19 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
     e.preventDefault();
     if (!clientId || lineItems.length === 0) return;
 
+    const parsedTaxRate = Number.parseFloat(taxRateInput || "0");
+    if (!Number.isFinite(parsedTaxRate) || parsedTaxRate < 0) {
+      showToast({
+        type: "danger",
+        message: "Tax rate must be a non-negative number.",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const discountCents = parseToCents(discountInput);
-      const taxRateBps = Math.round(parseFloat(taxRateInput || "0") * 100); // 12% = 1200 bps
+      const taxRateBps = Math.round(parsedTaxRate * 100); // 12% = 1200 bps
 
       const input: CreateInvoiceInput = {
         client_id: clientId,
@@ -464,6 +473,8 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
             />
             <Input
               label="Tax Rate (%)"
+              type="number"
+              min="0"
               value={taxRateInput}
               onChange={(e) => setTaxRateInput(e.target.value)}
               placeholder="0 (e.g. 12 for 12%)"

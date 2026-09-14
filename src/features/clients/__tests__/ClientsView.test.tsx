@@ -140,4 +140,22 @@ describe("ClientsView Component", () => {
       expect(screen.getByText(/No clients found/i)).toBeInTheDocument();
     });
   });
+
+  it("renders an error state and retries loading clients", async () => {
+    vi.spyOn(tauriService, "getClients")
+      .mockRejectedValueOnce(new Error("database unavailable"))
+      .mockResolvedValue(mockClients);
+    render(<ClientsView currencySymbol="₱" />);
+    const user = userEvent.setup();
+
+    await waitFor(() => {
+      expect(screen.getByText("Unable to load clients")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Juan Dela Cruz")).toBeInTheDocument();
+    });
+  });
 });
