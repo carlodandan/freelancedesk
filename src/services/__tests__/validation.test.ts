@@ -193,6 +193,16 @@ describe("Domain Validation Utilities", () => {
       expect(result.errors.description).toBeDefined();
     });
 
+    it("accepts valid expense input with date field name", () => {
+      const result = validateExpense({
+        category_id: "cat-1",
+        amount_cents: 50000,
+        description: "Figma Subscription",
+        date: "2026-09-01",
+      });
+      expect(result.isValid).toBe(true);
+    });
+
     it("rejects non-positive expense amounts", () => {
       const result = validateExpense({
         category_id: "cat-1",
@@ -210,6 +220,7 @@ describe("Domain Validation Utilities", () => {
       const result = validateInvoice({
         client_id: "c-1",
         issue_date: "2026-09-14",
+        due_date: "2026-09-28",
         items: [
           {
             description: "Design Services",
@@ -219,6 +230,25 @@ describe("Domain Validation Utilities", () => {
         ],
       });
       expect(result.isValid).toBe(true);
+    });
+
+    it("rejects due date earlier than issue date", () => {
+      const result = validateInvoice({
+        client_id: "c-1",
+        issue_date: "2026-09-14",
+        due_date: "2026-09-01",
+        items: [
+          {
+            description: "Design Services",
+            quantity: 1,
+            unit_price_cents: 200000,
+          },
+        ],
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.errors.due_date).toBe(
+        "Due date cannot be earlier than issue date",
+      );
     });
 
     it("rejects invoice with no line items", () => {
@@ -241,6 +271,19 @@ describe("Domain Validation Utilities", () => {
       expect(result.errors["item_0_desc"]).toBeDefined();
       expect(result.errors["item_0_qty"]).toBeDefined();
       expect(result.errors["item_0_price"]).toBeDefined();
+    });
+
+    it("rejects non-finite discount or tax rate", () => {
+      const result = validateInvoice({
+        client_id: "c-1",
+        issue_date: "2026-09-14",
+        discount_cents: NaN,
+        tax_rate_bps: Infinity,
+        items: [{ description: "Work", quantity: 1, unit_price_cents: 1000 }],
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.errors.discount_cents).toBeDefined();
+      expect(result.errors.tax_rate_bps).toBeDefined();
     });
   });
 });

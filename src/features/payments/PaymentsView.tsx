@@ -16,7 +16,11 @@ import {
 } from "../../types/entities";
 import { AppSettings } from "../../types/settings";
 import { tauriService } from "../../services/tauri";
-import { formatCents, parseToCents } from "../../services/currency";
+import {
+  formatCents,
+  parseToCents,
+  getTodayDateString,
+} from "../../services/currency";
 import { generateReceiptPdf } from "../../services/pdf";
 
 interface PaymentsViewProps {
@@ -40,9 +44,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   const [clientId, setClientId] = useState("");
   const [commissionId, setCommissionId] = useState("");
   const [amountInput, setAmountInput] = useState("");
-  const [paymentDate, setPaymentDate] = useState(
-    new Date().toISOString().split("T")[0],
-  );
+  const [paymentDate, setPaymentDate] = useState(getTodayDateString());
   const [paymentMethod, setPaymentMethod] = useState("Bank Transfer");
   const [referenceNumber, setReferenceNumber] = useState("");
   const [notes, setNotes] = useState("");

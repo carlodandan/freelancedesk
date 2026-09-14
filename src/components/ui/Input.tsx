@@ -1,4 +1,4 @@
-import React from "react";
+import React, { forwardRef, useId } from "react";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -8,7 +8,7 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   suffixIcon?: React.ReactNode;
 }
 
-export const Input = React.forwardRef<HTMLInputElement, InputProps>(
+export const Input = forwardRef<HTMLInputElement, InputProps>(
   (
     {
       label,
@@ -22,8 +22,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     },
     ref,
   ) => {
+    const generatedId = useId();
     const inputId =
-      id || (label ? label.toLowerCase().replace(/\s+/g, "-") : undefined);
+      id || (label ? label.toLowerCase().replace(/\s+/g, "-") : generatedId);
 
     const descId = error || hint ? `${inputId}-desc` : undefined;
 

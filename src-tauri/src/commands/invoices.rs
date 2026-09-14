@@ -109,12 +109,32 @@ pub fn create_invoice(
         )
         .unwrap_or_else(|_| "INV".to_string());
 
-    // Generate unique sequential invoice number
+    // Generate unique sequential invoice number based on existing sequence
     let current_year = chrono::Utc::now().format("%Y").to_string();
-    let count: i64 = conn
-        .query_row("SELECT COUNT(1) FROM invoices", [], |r| r.get(0))
-        .unwrap_or(0);
-    let invoice_number = format!("{}-{}-{:03}", prefix, current_year, count + 1);
+    let pattern = format!("{}-{}-%", prefix, current_year);
+    let existing_numbers: Vec<String> = {
+        let mut stmt = conn
+            .prepare("SELECT invoice_number FROM invoices WHERE invoice_number LIKE ?1")
+            .map_err(|e| e.to_string())?;
+        let list = stmt
+            .query_map(params![pattern], |r| r.get(0))
+            .map_err(|e| e.to_string())?
+            .filter_map(Result::ok)
+            .collect();
+        list
+    };
+
+    let mut max_seq = 0;
+    for num in existing_numbers {
+        if let Some(suffix) = num.split('-').last() {
+            if let Ok(seq) = suffix.parse::<i64>() {
+                if seq > max_seq {
+                    max_seq = seq;
+                }
+            }
+        }
+    }
+    let invoice_number = format!("{}-{}-{:03}", prefix, current_year, max_seq + 1);
 
     // Calculate subtotal from line items
     let mut subtotal_cents: i64 = 0;

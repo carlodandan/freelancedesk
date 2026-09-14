@@ -15,7 +15,11 @@ import {
   CreateExpenseInput,
 } from "../../types/entities";
 import { tauriService } from "../../services/tauri";
-import { formatCents, parseToCents } from "../../services/currency";
+import {
+  formatCents,
+  parseToCents,
+  getTodayDateString,
+} from "../../services/currency";
 
 interface ExpensesViewProps {
   currencySymbol: string;
@@ -39,7 +43,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
   const [projectId, setProjectId] = useState("");
   const [description, setDescription] = useState("");
   const [amountInput, setAmountInput] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(getTodayDateString());
   const [paymentMethod, setPaymentMethod] = useState("Bank Transfer");
   const [notes, setNotes] = useState("");
   const [newCategoryName, setNewCategoryName] = useState("");

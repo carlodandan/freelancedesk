@@ -16,7 +16,7 @@ import {
 } from "../../types/entities";
 import { AppSettings } from "../../types/settings";
 import { tauriService } from "../../services/tauri";
-import { formatCents } from "../../services/currency";
+import { formatCents, parseToCents } from "../../services/currency";
 import { generateInvoicePdf } from "../../services/pdf";
 
 interface InvoicesViewProps {
@@ -35,11 +35,14 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
   const [isDraftModalOpen, setIsDraftModalOpen] = useState(false);
   const { showToast } = useToast();
 
+  const getTodayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+
   // Form state
   const [clientId, setClientId] = useState("");
-  const [issueDate, setIssueDate] = useState(
-    new Date().toISOString().split("T")[0],
-  );
+  const [issueDate, setIssueDate] = useState(getTodayStr());
   const [dueDate, setDueDate] = useState("");
   const [discountInput, setDiscountInput] = useState("");
   const [taxRateInput, setTaxRateInput] = useState("0");
@@ -99,13 +102,27 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
     setLineItems(updated);
   };
 
+  const resetForm = () => {
+    setClientId("");
+    setIssueDate(getTodayStr());
+    setDueDate("");
+    setDiscountInput("");
+    setTaxRateInput("0");
+    setNotes("");
+    setPaymentInstructions(
+      settings.default_payment_terms ||
+        "Payment due within 15 days of invoice date.",
+    );
+    setLineItems([{ description: "", quantity: 1, unit_price_cents: 0 }]);
+  };
+
   const handleCreateInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientId || lineItems.length === 0) return;
 
     setIsSubmitting(true);
     try {
-      const discountCents = Math.round(parseFloat(discountInput || "0") * 100);
+      const discountCents = parseToCents(discountInput);
       const taxRateBps = Math.round(parseFloat(taxRateInput || "0") * 100); // 12% = 1200 bps
 
       const input: CreateInvoiceInput = {
@@ -120,6 +137,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
       };
 
       const newInv = await tauriService.createInvoice(input);
+      resetForm();
       setIsDraftModalOpen(false);
       await loadData();
 

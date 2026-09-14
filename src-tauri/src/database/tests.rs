@@ -202,7 +202,7 @@ mod tests {
             .unwrap();
         let remaining = price_cents - total_paid;
         let new_status = if remaining <= 0 {
-            "fully_paid"
+            "paid"
         } else if total_paid >= deposit_cents {
             "deposit_paid"
         } else {
@@ -229,12 +229,60 @@ mod tests {
             .unwrap();
         let remaining_2 = price_cents - total_paid_2;
         let new_status_2 = if remaining_2 <= 0 {
-            "fully_paid"
+            "paid"
         } else {
             "partially_paid"
         };
 
         assert_eq!(remaining_2, 0);
-        assert_eq!(new_status_2, "fully_paid");
+        assert_eq!(new_status_2, "paid");
+    }
+
+    #[test]
+    fn test_sqlite_online_backup_and_restore() {
+        use rusqlite::backup::Backup;
+        use std::time::Duration;
+
+        let src_conn = create_test_db();
+        let client_id = Uuid::new_v4().to_string();
+        src_conn.execute(
+            "INSERT INTO clients (id, name, email) VALUES (?1, 'Backup Client', 'backup@example.com');",
+            params![client_id],
+        ).unwrap();
+
+        // 1. Test online backup from src_conn to dst_conn
+        let mut dst_conn = Connection::open_in_memory().unwrap();
+        {
+            let backup = Backup::new(&src_conn, &mut dst_conn).unwrap();
+            backup.run_to_completion(100, Duration::from_millis(10), None).unwrap();
+        }
+
+        // Verify dst_conn has the client and schema_migrations
+        let count: i64 = dst_conn
+            .query_row("SELECT COUNT(1) FROM clients WHERE id = ?1", params![client_id], |r| r.get(0))
+            .unwrap();
+        assert_eq!(count, 1);
+
+        let mig_count: i64 = dst_conn
+            .query_row("SELECT COUNT(1) FROM schema_migrations", [], |r| r.get(0))
+            .unwrap();
+        assert!(mig_count > 0);
+
+        // 2. Test restore from dst_conn back into a clean new connection
+        let mut restored_conn = Connection::open_in_memory().unwrap();
+        {
+            let restore = Backup::new(&dst_conn, &mut restored_conn).unwrap();
+            restore.run_to_completion(100, Duration::from_millis(10), None).unwrap();
+        }
+
+        let integrity: String = restored_conn
+            .query_row("PRAGMA integrity_check;", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(integrity, "ok");
+
+        let restored_client_name: String = restored_conn
+            .query_row("SELECT name FROM clients WHERE id = ?1", params![client_id], |r| r.get(0))
+            .unwrap();
+        assert_eq!(restored_client_name, "Backup Client");
     }
 }

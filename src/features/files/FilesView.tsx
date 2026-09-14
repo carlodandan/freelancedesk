@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Upload, Trash2, File, Image, FileText } from "lucide-react";
 import { Card } from "../../components/ui/Card";
 import {
@@ -12,20 +12,22 @@ export const FilesView: React.FC = () => {
   const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
   const [clients, setClients] = useState<ClientItem[]>([]);
   const [selectedEntityId, setSelectedEntityId] = useState("");
-  const entityType = "clients";
+  const entityType = "client";
   const [isUploading, setIsUploading] = useState(false);
+  const activeEntityIdRef = useRef("");
 
   const loadData = async () => {
     try {
       const clientList = await tauriService.getClients();
       setClients(clientList);
       if (clientList.length > 0 && !selectedEntityId) {
-        setSelectedEntityId(clientList[0].id);
-        const atts = await tauriService.getAttachments(
-          "clients",
-          clientList[0].id,
-        );
-        setAttachments(atts);
+        const initialId = clientList[0].id;
+        setSelectedEntityId(initialId);
+        activeEntityIdRef.current = initialId;
+        const atts = await tauriService.getAttachments(entityType, initialId);
+        if (activeEntityIdRef.current === initialId) {
+          setAttachments(atts);
+        }
       }
     } catch (err) {
       console.error("Failed to load files data:", err);
@@ -38,10 +40,16 @@ export const FilesView: React.FC = () => {
 
   const handleEntityChange = async (eid: string) => {
     setSelectedEntityId(eid);
-    if (!eid) return;
+    activeEntityIdRef.current = eid;
+    if (!eid) {
+      setAttachments([]);
+      return;
+    }
     try {
       const atts = await tauriService.getAttachments(entityType, eid);
-      setAttachments(atts);
+      if (activeEntityIdRef.current === eid) {
+        setAttachments(atts);
+      }
     } catch (err) {
       console.error("Failed to fetch attachments:", err);
     }
@@ -53,21 +61,23 @@ export const FilesView: React.FC = () => {
 
     setIsUploading(true);
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = reader.result as string;
-        const input: AddAttachmentInput = {
-          entity_type: entityType,
-          entity_id: selectedEntityId,
-          file_name: file.name,
-          file_base64: base64,
-          mime_type: file.type || undefined,
-        };
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
 
-        const newAtt = await tauriService.addAttachment(input);
-        setAttachments([newAtt, ...attachments]);
+      const input: AddAttachmentInput = {
+        entity_type: entityType,
+        entity_id: selectedEntityId,
+        file_name: file.name,
+        file_base64: base64,
+        mime_type: file.type || undefined,
       };
-      reader.readAsDataURL(file);
+
+      const newAtt = await tauriService.addAttachment(input);
+      setAttachments((prev) => [newAtt, ...prev]);
     } catch (err) {
       console.error("Upload failed:", err);
     } finally {

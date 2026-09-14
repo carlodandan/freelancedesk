@@ -135,6 +135,26 @@ export function generateInvoicePdf(
   for (const item of invoice.items) {
     const descLines = doc.splitTextToSize(item.description, 80);
     const rowHeight = Math.max(9, descLines.length * 4.5 + 4.5);
+
+    if (y + rowHeight > 255) {
+      doc.addPage();
+      y = 25;
+      // Draw table header on new page
+      doc.setFillColor(245, 242, 235);
+      doc.rect(left, y, right - left, headerHeight, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(140, 134, 122);
+      doc.text("DESCRIPTION", left + 4, y + 5.8);
+      doc.text("QTY", 114, y + 5.8, { align: "center" });
+      doc.text("UNIT PRICE", 154, y + 5.8, { align: "right" });
+      doc.text("TOTAL", 186, y + 5.8, { align: "right" });
+      y += headerHeight;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(28, 25, 23);
+    }
+
     const textY = y + 5.5;
 
     doc.text(descLines, left + 4, textY);

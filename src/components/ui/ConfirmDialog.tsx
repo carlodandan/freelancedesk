@@ -23,6 +23,19 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onConfirm,
   onCancel,
 }) => {
+  const cancelBtnRef = React.useRef<HTMLButtonElement>(null);
+  const previousActiveElementRef = React.useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      previousActiveElementRef.current =
+        document.activeElement as HTMLElement | null;
+      setTimeout(() => cancelBtnRef.current?.focus(), 50);
+    } else {
+      previousActiveElementRef.current?.focus();
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen) {
@@ -79,7 +92,12 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         </div>
 
         <div className="mt-6 flex items-center justify-end gap-2.5">
-          <Button variant="ghost" size="sm" onClick={onCancel}>
+          <Button
+            ref={cancelBtnRef}
+            variant="ghost"
+            size="sm"
+            onClick={onCancel}
+          >
             {cancelLabel}
           </Button>
           <Button

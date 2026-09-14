@@ -5,12 +5,21 @@ use std::fs;
 use tauri::State;
 use uuid::Uuid;
 
+fn validate_entity_type(entity_type: &str) -> Result<(), String> {
+    match entity_type {
+        "client" | "project" | "commission" | "expense" | "invoice" => Ok(()),
+        _ => Err(format!("Unsupported or invalid entity type: {}", entity_type)),
+    }
+}
+
 #[tauri::command]
 pub fn get_attachments(
     state: State<'_, AppState>,
     entity_type: String,
     entity_id: String,
 ) -> Result<Vec<AttachmentItem>, String> {
+    validate_entity_type(&entity_type)?;
+
     let conn = state.db.lock().map_err(|e| e.to_string())?;
 
     let mut stmt = conn
@@ -37,10 +46,9 @@ pub fn get_attachments(
         })
         .map_err(|e| e.to_string())?;
 
-    let mut attachments = Vec::new();
-    for a in rows.flatten() {
-        attachments.push(a);
-    }
+    let attachments: Vec<AttachmentItem> = rows
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
 
     Ok(attachments)
 }
@@ -50,7 +58,7 @@ pub fn add_attachment(
     state: State<'_, AppState>,
     input: AddAttachmentInput,
 ) -> Result<AttachmentItem, String> {
-    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    validate_entity_type(&input.entity_type)?;
 
     let id = Uuid::new_v4().to_string();
 
@@ -73,7 +81,7 @@ pub fn add_attachment(
     let stored_file_name = format!("{}_{}", id, clean_name);
     let target_path = target_dir.join(&stored_file_name);
 
-    // Decode base64 content
+    // Decode base64 content before acquiring database mutex
     let raw_bytes = if let Some(comma_pos) = input.file_base64.find(',') {
         &input.file_base64[comma_pos + 1..]
     } else {
@@ -87,7 +95,13 @@ pub fn add_attachment(
 
     let storage_rel_path = target_path.to_string_lossy().to_string();
 
-    conn.execute(
+    // Acquire lock solely for the database insertion
+    let conn = state.db.lock().map_err(|e| {
+        let _ = fs::remove_file(&target_path);
+        e.to_string()
+    })?;
+
+    if let Err(e) = conn.execute(
         "INSERT INTO attachments (id, entity_type, entity_id, file_name, storage_path, file_size_bytes, mime_type, created_at)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, datetime('now'))",
         params![
@@ -99,8 +113,10 @@ pub fn add_attachment(
             file_size,
             input.mime_type,
         ],
-    )
-    .map_err(|e| e.to_string())?;
+    ) {
+        let _ = fs::remove_file(&target_path);
+        return Err(e.to_string());
+    }
 
     Ok(AttachmentItem {
         id,
@@ -127,7 +143,10 @@ pub fn delete_attachment(state: State<'_, AppState>, id: String) -> Result<bool,
         .ok();
 
     if let Some(path_str) = storage_path {
-        let _ = fs::remove_file(path_str);
+        let path = std::path::Path::new(&path_str);
+        if path.exists() {
+            fs::remove_file(path).map_err(|e| format!("Failed to remove attachment file: {}", e))?;
+        }
     }
 
     conn.execute("DELETE FROM attachments WHERE id = ?1", params![id])

@@ -8,6 +8,26 @@ const host = process.env.TAURI_DEV_HOST;
 // https://vite.dev/config/
 export default defineConfig(() => ({
   plugins: [react(), tailwindcss()],
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("jspdf")) {
+              return "jspdf";
+            }
+            if (id.includes("lucide-react")) {
+              return "lucide";
+            }
+            if (id.includes("react") || id.includes("react-dom")) {
+              return "vendor";
+            }
+          }
+        },
+      },
+    },
+  },
   test: {
     globals: true,
     environment: "jsdom",

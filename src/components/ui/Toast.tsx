@@ -73,6 +73,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
         {toasts.map((t) => (
           <div
             key={t.id}
+            role={t.type === "danger" ? "alert" : "status"}
+            aria-live={t.type === "danger" ? "assertive" : "polite"}
             className="pointer-events-auto flex items-center justify-between gap-3 p-3.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-ledger)] shadow-lg animate-in slide-in-from-bottom-2 fade-in duration-200"
           >
             <div className="flex items-center gap-2.5 min-w-0">

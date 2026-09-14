@@ -126,6 +126,7 @@ export function validateExpense(input: {
   category_id?: string;
   amount_cents?: number;
   description?: string;
+  date?: string;
   expense_date?: string;
 }): ValidationResult {
   const errors: Record<string, string> = {};
@@ -138,13 +139,17 @@ export function validateExpense(input: {
     errors.description = "Expense description is required";
   }
 
-  if (typeof input.amount_cents !== "number" || isNaN(input.amount_cents)) {
-    errors.amount_cents = "Expense amount is required";
-  } else if (input.amount_cents <= 0) {
+  if (
+    typeof input.amount_cents !== "number" ||
+    !Number.isFinite(input.amount_cents) ||
+    input.amount_cents <= 0
+  ) {
     errors.amount_cents = "Expense amount must be greater than zero";
   }
 
-  if (!input.expense_date || !isValidDateString(input.expense_date)) {
+  const effectiveDate = input.date || input.expense_date;
+  if (!effectiveDate || !isValidDateString(effectiveDate)) {
+    errors.date = "Expense date must be a valid date (YYYY-MM-DD)";
     errors.expense_date = "Expense date must be a valid date (YYYY-MM-DD)";
   }
 
@@ -176,8 +181,16 @@ export function validateInvoice(input: {
     errors.issue_date = "Issue date must be a valid date (YYYY-MM-DD)";
   }
 
-  if (input.due_date && !isValidDateString(input.due_date)) {
-    errors.due_date = "Due date must be a valid date (YYYY-MM-DD)";
+  if (input.due_date) {
+    if (!isValidDateString(input.due_date)) {
+      errors.due_date = "Due date must be a valid date (YYYY-MM-DD)";
+    } else if (
+      input.issue_date &&
+      isValidDateString(input.issue_date) &&
+      input.due_date < input.issue_date
+    ) {
+      errors.due_date = "Due date cannot be earlier than issue date";
+    }
   }
 
   if (!input.items || input.items.length === 0) {
@@ -188,12 +201,12 @@ export function validateInvoice(input: {
         errors[`item_${idx}_desc`] =
           `Line item ${idx + 1} description is required`;
       }
-      if (typeof item.quantity !== "number" || item.quantity <= 0) {
+      if (!Number.isFinite(item.quantity) || item.quantity <= 0) {
         errors[`item_${idx}_qty`] =
           `Line item ${idx + 1} quantity must be at least 1`;
       }
       if (
-        typeof item.unit_price_cents !== "number" ||
+        !Number.isFinite(item.unit_price_cents) ||
         item.unit_price_cents < 0
       ) {
         errors[`item_${idx}_price`] =
@@ -202,12 +215,16 @@ export function validateInvoice(input: {
     });
   }
 
-  if (typeof input.discount_cents === "number" && input.discount_cents < 0) {
-    errors.discount_cents = "Discount cannot be negative";
+  if (input.discount_cents !== undefined) {
+    if (!Number.isFinite(input.discount_cents) || input.discount_cents < 0) {
+      errors.discount_cents = "Discount cannot be negative";
+    }
   }
 
-  if (typeof input.tax_rate_bps === "number" && input.tax_rate_bps < 0) {
-    errors.tax_rate_bps = "Tax rate cannot be negative";
+  if (input.tax_rate_bps !== undefined) {
+    if (!Number.isFinite(input.tax_rate_bps) || input.tax_rate_bps < 0) {
+      errors.tax_rate_bps = "Tax rate cannot be negative";
+    }
   }
 
   return {

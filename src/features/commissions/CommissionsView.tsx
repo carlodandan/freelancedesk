@@ -134,7 +134,10 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
         price_cents: priceCents,
         deposit_percentage: depositPct,
         date_requested: dateRequested || undefined,
-        start_date: new Date().toISOString().split("T")[0],
+        start_date: (() => {
+          const d = new Date();
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        })(),
         deadline: deadline || undefined,
         notes: notes.trim() || undefined,
         items: lineItems,
@@ -178,10 +181,13 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
   };
 
   const resetForm = () => {
+    setProjectId("");
     setTitle("");
     setDescription("");
+    setCommissionType("");
     setPriceInput("");
     setDepositPct(defaultDepositPct);
+    setDateRequested("");
     setDeadline("");
     setNotes("");
     setLineItems([]);

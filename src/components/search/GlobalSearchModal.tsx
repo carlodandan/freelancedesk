@@ -32,13 +32,19 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
   const [isSearching, setIsSearching] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const searchReqIdRef = useRef(0);
+  const previousActiveElementRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (isOpen) {
+      previousActiveElementRef.current =
+        document.activeElement as HTMLElement | null;
       setQuery("");
       setResults([]);
       setSelectedIndex(0);
       setTimeout(() => inputRef.current?.focus(), 50);
+    } else {
+      previousActiveElementRef.current?.focus();
     }
   }, [isOpen]);
 
@@ -88,18 +94,26 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     const trimmed = query.trim();
     if (!trimmed) {
       setResults([]);
+      setIsSearching(false);
       return;
     }
 
+    const currentReqId = ++searchReqIdRef.current;
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
         const res = await tauriService.globalSearch(trimmed);
-        setResults(res?.results || []);
+        if (currentReqId === searchReqIdRef.current) {
+          setResults(res?.results || []);
+        }
       } catch (err) {
-        console.error("Global search error:", err);
+        if (currentReqId === searchReqIdRef.current) {
+          console.error("Global search error:", err);
+        }
       } finally {
-        setIsSearching(false);
+        if (currentReqId === searchReqIdRef.current) {
+          setIsSearching(false);
+        }
       }
     }, 150);
 

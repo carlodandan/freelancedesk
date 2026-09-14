@@ -149,10 +149,13 @@ pub fn update_client(
 pub fn delete_client(state: State<'_, AppState>, id: String) -> Result<bool, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;
 
-    // Check if client has commissions or projects
+    // Check if client has related projects, commissions, payments, or invoices
     let has_records: i64 = conn
         .query_row(
-            "SELECT (SELECT COUNT(1) FROM projects WHERE client_id = ?1) + (SELECT COUNT(1) FROM commissions WHERE client_id = ?1)",
+            "SELECT (SELECT COUNT(1) FROM projects WHERE client_id = ?1) +
+                    (SELECT COUNT(1) FROM commissions WHERE client_id = ?1) +
+                    (SELECT COUNT(1) FROM payments WHERE client_id = ?1) +
+                    (SELECT COUNT(1) FROM invoices WHERE client_id = ?1)",
             params![id],
             |r| r.get(0),
         )

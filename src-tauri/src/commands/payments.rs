@@ -167,9 +167,18 @@ pub fn create_payment(
         .map_err(|e| e.to_string())?;
     }
 
+    let currency_symbol: String = tx
+        .query_row(
+            "SELECT value FROM settings WHERE key = 'currency_symbol'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap_or_else(|_| "₱".to_string());
+
     let act_id = Uuid::new_v4().to_string();
     let desc = format!(
-        "Payment of ₱{:.2} received from {} via {}",
+        "Payment of {}{:.2} received from {} via {}",
+        currency_symbol,
         (input.amount_cents as f64) / 100.0,
         client_name,
         input.payment_method

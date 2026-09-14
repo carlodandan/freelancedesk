@@ -344,12 +344,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   min="0"
                   max="100"
                   value={formData.default_deposit_pct}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
                     setFormData({
                       ...formData,
-                      default_deposit_pct: parseInt(e.target.value, 10) || 50,
-                    })
-                  }
+                      default_deposit_pct: isNaN(val) ? 50 : val,
+                    });
+                  }}
                   hint="Default upfront deposit percentage (e.g. 50%)"
                 />
                 <div className="col-span-2">
