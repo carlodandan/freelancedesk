@@ -82,6 +82,34 @@ pub fn get_invoices(
     Ok(invoices)
 }
 
+pub(crate) fn generate_next_invoice_number(
+    conn: &rusqlite::Connection,
+    prefix: &str,
+    year: &str,
+) -> Result<String, String> {
+    let pattern = format!("{}-{}-%", prefix, year);
+    let mut stmt = conn
+        .prepare("SELECT invoice_number FROM invoices WHERE invoice_number LIKE ?1")
+        .map_err(|e| e.to_string())?;
+    let existing_numbers: Vec<String> = stmt
+        .query_map(params![pattern], |r| r.get(0))
+        .map_err(|e| e.to_string())?
+        .filter_map(Result::ok)
+        .collect();
+
+    let mut max_seq = 0;
+    for num in existing_numbers {
+        if let Some(suffix) = num.split('-').last() {
+            if let Ok(seq) = suffix.parse::<i64>() {
+                if seq > max_seq {
+                    max_seq = seq;
+                }
+            }
+        }
+    }
+    Ok(format!("{}-{}-{:03}", prefix, year, max_seq + 1))
+}
+
 #[tauri::command]
 pub fn create_invoice(
     state: State<'_, AppState>,
@@ -111,30 +139,7 @@ pub fn create_invoice(
 
     // Generate unique sequential invoice number based on existing sequence
     let current_year = chrono::Utc::now().format("%Y").to_string();
-    let pattern = format!("{}-{}-%", prefix, current_year);
-    let existing_numbers: Vec<String> = {
-        let mut stmt = conn
-            .prepare("SELECT invoice_number FROM invoices WHERE invoice_number LIKE ?1")
-            .map_err(|e| e.to_string())?;
-        let list = stmt
-            .query_map(params![pattern], |r| r.get(0))
-            .map_err(|e| e.to_string())?
-            .filter_map(Result::ok)
-            .collect();
-        list
-    };
-
-    let mut max_seq = 0;
-    for num in existing_numbers {
-        if let Some(suffix) = num.split('-').last() {
-            if let Ok(seq) = suffix.parse::<i64>() {
-                if seq > max_seq {
-                    max_seq = seq;
-                }
-            }
-        }
-    }
-    let invoice_number = format!("{}-{}-{:03}", prefix, current_year, max_seq + 1);
+    let invoice_number = generate_next_invoice_number(&conn, &prefix, &current_year)?;
 
     // Calculate subtotal from line items
     let mut subtotal_cents: i64 = 0;
