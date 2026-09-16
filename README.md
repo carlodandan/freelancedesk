@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![FreelanceDesk Logo](public/favicon.svg)
+![FreelanceDesk Logo](public/freelancedesk.png)
 
 ### The Artisanal Digital Ledger for Independent Freelancers & Creators
 
