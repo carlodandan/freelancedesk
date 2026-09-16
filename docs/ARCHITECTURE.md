@@ -34,15 +34,16 @@ graph TB
         subgraph Backend ["Native Engine Container (Rust)"]
             TauriCore["Tauri v2 Runtime<br/>(Event Loop & Windowing)"]
             CmdRouter["IPC Command Router<br/>(34 Modular Handlers)"]
-            AppState["Thread-Safe State<br/>(Mutex&lt;Connection&gt;)"]
+            AppState["Thread-Safe State<br/>(Mutex&lt;Connection&gt;, Vault Key)"]
             Storage["StorageManager<br/>(Filesystem Sandboxing)"]
+            SecurityModule["Security Engine<br/>(Windows DPAPI + AES-256-GCM + Argon2id)"]
         end
     end
 
     subgraph OSFileSystem ["Local Windows File System"]
-        DBFile[("SQLite Database<br/>%APPDATA%/.../freelance.db<br/>(WAL Mode)")]
+        DBFile[("SQLite Database<br/>%APPDATA%/.../freelance.db<br/>(enc:v1: Client PII)")]
         AttachmentStore["Attachment Sandbox<br/>%APPDATA%/.../attachments/"]
-        BackupStore["Backup Snapshots<br/>%APPDATA%/.../backups/"]
+        BackupStore["Backup Store<br/>.fdesk (Encrypted) / .db (Local)"]
     end
 
     User -->|"Interacts with UI"| ReactApp
@@ -54,10 +55,10 @@ graph TB
     TauriCore --> CmdRouter
     CmdRouter --> AppState
     CmdRouter --> Storage
-
-    AppState -->|"Parameterized SQL"| DBFile
+    AppState --> SecurityModule
+    SecurityModule -->|"Transparent CryptProtectData & AES-GCM"| DBFile
+    SecurityModule -->|"Argon2id Encrypted Archives"| BackupStore
     Storage -->|"Sandboxed I/O"| AttachmentStore
-    Storage -->|"Copy & Integrity Verify"| BackupStore
 ```
 
 ---
@@ -157,7 +158,9 @@ pub struct AppState {
 
 ### 4.3 Backup & Crash-Safe Restoration Flow
 
-To ensure database consistency during live operation, backups use SQLite's Write-Ahead Log truncation checkpoint:
+FreelanceDesk supports two backup strategies:
+1. **Passphrase-Protected Portable Archive (`.fdesk`)**: Designed for cloud storage (Google Drive, OneDrive, Dropbox) or transferring to a new computer.
+2. **Local Snapshot (`.db`)**: Unencrypted SQLite online backup for quick rollback on the same machine.
 
 ```mermaid
 sequenceDiagram
@@ -165,25 +168,73 @@ sequenceDiagram
     actor User
     participant UI as Frontend (SettingsView)
     participant Cmd as commands::backup::create_backup
+    participant Crypto as security::crypto
     participant DB as SQLite Connection
     participant FS as Local Filesystem
 
-    User->>UI: Clicks "Backup Now"
-    UI->>Cmd: invoke("create_backup")
-    Cmd->>DB: PRAGMA wal_checkpoint(TRUNCATE)
-    Note over DB: All pending journal writes<br/>are flushed to freelance.db
-    Cmd->>FS: Copy freelance.db to backups/FreelanceDesk_Backup_{TIMESTAMP}.db
-    FS-->>Cmd: Success(backup_path)
-    Cmd-->>UI: Return backup path
-    UI-->>User: Display Toast Notification
+    alt Encrypted Portable Backup (.fdesk)
+        User->>UI: Selects "Protect with Passphrase" & submits
+        UI->>Cmd: invoke("create_backup", { passphrase })
+        Cmd->>DB: Online backup to temporary SQLite snapshot
+        Cmd->>Crypto: decrypt_all_client_fields(&temp_conn, &vault_key)
+        Note over Cmd: Scrub local_vault_key from exported settings
+        Cmd->>Crypto: encrypt_backup_payload(temp_bytes, passphrase)
+        Note over Crypto: Argon2id (salt: 16B) -> Key (32B)<br/>AES-256-GCM (nonce: 12B) -> [FDSK][v1][salt][nonce][ct]
+        Cmd->>FS: Write backups/FreelanceDesk_Backup_{TIMESTAMP}.fdesk
+        FS-->>Cmd: Success(backup_path)
+        Cmd-->>UI: Return backup path
+    else Unencrypted Local Snapshot (.db)
+        User->>UI: Clicks "Create Backup" without passphrase
+        UI->>Cmd: invoke("create_backup")
+        Cmd->>DB: rusqlite::backup::Backup (Online Backup API)
+        Cmd->>FS: Write backups/FreelanceDesk_Backup_{TIMESTAMP}.db
+        FS-->>Cmd: Success(backup_path)
+        Cmd-->>UI: Return backup path
+    end
 ```
 
 #### Safe Restoration Protocol
 
 During `restore_backup`:
-1. **Source Integrity Check**: Opens the selected backup file independently and runs `PRAGMA integrity_check;`. If the result is not `"ok"`, the restore aborts immediately.
-2. **Safety Snapshot**: The active database is checkpointed and cloned to `backups/Safety_Backup_Before_Restore_{TIMESTAMP}.db`.
-3. **Overwrite & Reconnect**: The verified backup overwrites `freelance.db`, and the mutex-protected connection re-initializes with strict foreign keys and WAL mode.
+1. **Format Detection**: Inspects the backup header for `b"FDSK"` magic bytes or `.fdesk` extension.
+2. **Passphrase Decryption (`.fdesk`)**: If encrypted, derives the key via Argon2id using the file's embedded 16-byte salt and decrypts with AES-256-GCM into a temporary SQLite database.
+3. **Source Integrity Check**: Executes `PRAGMA integrity_check;`. If the result is not `"ok"`, the operation aborts immediately.
+4. **Schema Verification**: Inspects `schema_migrations` and validates all required tables and columns against `REQUIRED_SCHEMA`.
+5. **Atomic Safety Snapshot**: The active database is cloned via SQLite Online Backup API to `backups/Safety_Backup_Before_Restore_{TIMESTAMP}.db`.
+6. **Overwrite & Reconnect**: The verified database is restored into the active connection.
+7. **Automatic Re-Keying**: 
+   - Windows DPAPI encrypts the active workstation's vault key into the restored `settings` table.
+   - `migrate_unencrypted_clients` immediately seals all client fields (`email`, `phone`, `contact_handle`, `address`, `notes`) using the host workstation's native DPAPI key.
+8. **PRAGMA Enforcement**: WAL mode, foreign keys, and checkpoint truncation are applied.
+
+---
+
+### 4.4 At-Rest Client Encryption & Key Management
+
+To protect sensitive client information without creating friction for solo freelancers:
+
+```mermaid
+graph LR
+    subgraph Host ["Local Windows Workstation"]
+        DPAPI["Windows DPAPI<br/>(CryptProtectData)"]
+        VaultKey["256-bit AES Vault Key<br/>(In-Memory AppState)"]
+        SettingsTable["settings.local_vault_key<br/>(Base64 DPAPI Blob)"]
+    end
+
+    subgraph Records ["SQLite Records (clients Table)"]
+        PlaintextFields["Plaintext: id, name, company, status"]
+        EncryptedFields["AES-256-GCM: email, phone, handle, address, notes<br/>enc:v1:<base64(12B nonce + ciphertext + 16B tag)>"]
+    end
+
+    DPAPI -->|"Unprotects at startup"| VaultKey
+    VaultKey -->|"Protects on creation"| SettingsTable
+    VaultKey -->|"Encrypt on write"| EncryptedFields
+    VaultKey -->|"Decrypt on read"| EncryptedFields
+```
+
+* **Zero Daily Friction**: The primary computer transparently decrypts the vault master key from `settings` using Windows DPAPI at application startup. No master password prompt is required during normal daily usage.
+* **Theft Resistance**: If `freelance.db` is exfiltrated or copied to another machine, the alien Windows user account cannot unprotect the DPAPI blob, leaving all sensitive client records as unreadable ciphertext.
+* **Search & Join Decryption**: Client email and address are decrypted in memory when generating invoices or executing global search (`Ctrl + K`), preventing raw ciphertexts from leaking to the UI while keeping the database confidential.
 
 ---
 
@@ -213,7 +264,10 @@ Default PDF standard fonts (Helvetica, Times) operate in Latin-1/WinAnsi encodin
 | Threat | Mitigation Strategy |
 |---|---|
 | **SQL Injection** | 100% of SQLite database queries use parameterized prepared statements (`conn.prepare(...)` and `params![...]`). Raw string interpolation into SQL is strictly forbidden. |
+| **Local Database Theft / Exfiltration** | Sensitive client PII (`email`, `phone`, `contact_handle`, `address`, `notes`) is encrypted with AES-256-GCM. The master key is tied to the Windows user account via DPAPI (`CryptProtectData`), rendering copied `.db` files unreadable. |
+| **Cloud Backup Compromise** | Portable `.fdesk` backup archives are sealed using Argon2id key derivation and AES-256-GCM encryption with machine-specific keys scrubbed, safe for Google Drive, OneDrive, or USB storage. |
 | **Path Traversal** | Attachment uploads and file operations are resolved strictly against validated sandbox paths (`StorageManager`). |
-| **Data Loss on Restore** | Automated safety snapshot created prior to any database overwrite. |
+| **Data Loss on Restore** | Automated safety snapshot created prior to any database overwrite, coupled with strict schema validation. |
 | **Cloud Surveillance** | Zero external HTTP requests; no third-party telemetry; no external web fonts or CDN scripts loaded at runtime. |
 | **Monetary Calculation Drift** | Pure integer arithmetic in cents; zero floating-point math stored in database. |
+
