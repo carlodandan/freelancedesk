@@ -27,12 +27,14 @@ pub fn get_invoices(
     let rows = stmt
         .query_map(params![client_id], |row| {
             let inv_id: String = row.get(0)?;
+            let raw_email: Option<String> = row.get(3)?;
+            let raw_address: Option<String> = row.get(4)?;
             Ok(InvoiceItem {
                 id: inv_id,
                 client_id: row.get(1)?,
                 client_name: row.get(2)?,
-                client_email: row.get(3)?,
-                client_address: row.get(4)?,
+                client_email: raw_email.map(|s| crate::security::crypto::decrypt_field(&s, &state.vault_key)),
+                client_address: raw_address.map(|s| crate::security::crypto::decrypt_field(&s, &state.vault_key)),
                 invoice_number: row.get(5)?,
                 issue_date: row.get(6)?,
                 due_date: row.get(7)?,
@@ -120,13 +122,16 @@ pub fn create_invoice(
     let id = Uuid::new_v4().to_string();
 
     // Fetch client details
-    let (client_name, client_email, client_address): (String, Option<String>, Option<String>) =
+    let (client_name, raw_email, raw_address): (String, Option<String>, Option<String>) =
         conn.query_row(
             "SELECT name, email, address FROM clients WHERE id = ?1",
             params![input.client_id],
             |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
         )
         .map_err(|_| "Client not found".to_string())?;
+
+    let client_email = raw_email.map(|s| crate::security::crypto::decrypt_field(&s, &state.vault_key));
+    let client_address = raw_address.map(|s| crate::security::crypto::decrypt_field(&s, &state.vault_key));
 
     // Fetch invoice prefix
     let prefix: String = conn

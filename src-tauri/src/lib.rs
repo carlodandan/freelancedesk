@@ -1,6 +1,7 @@
 pub mod commands;
 pub mod database;
 pub mod models;
+pub mod security;
 pub mod services;
 
 use rusqlite::Connection;
@@ -13,6 +14,7 @@ pub struct AppState {
     pub db: Mutex<Connection>,
     pub app_data_dir: PathBuf,
     pub db_path: PathBuf,
+    pub vault_key: [u8; 32],
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -42,10 +44,20 @@ pub fn run() {
             let conn = database::init_database(&db_path)
                 .map_err(|e| format!("Failed to init SQLite database: {}", e))?;
 
+            let db_mutex = Mutex::new(conn);
+            let vault_key = security::get_or_create_vault_key(&db_mutex)
+                .map_err(|e| format!("Failed to init vault key: {}", e))?;
+
+            // Migrate any legacy unencrypted client fields to encrypted format
+            if let Ok(mut c) = db_mutex.lock() {
+                let _ = security::crypto::migrate_unencrypted_clients(&mut c, &vault_key);
+            }
+
             app.manage(AppState {
-                db: Mutex::new(conn),
+                db: db_mutex,
                 app_data_dir,
                 db_path,
+                vault_key,
             });
 
             Ok(())

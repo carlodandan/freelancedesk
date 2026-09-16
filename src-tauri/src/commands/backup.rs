@@ -260,36 +260,72 @@ fn validate_backup_schema(conn: &Connection) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn create_backup(state: State<'_, AppState>) -> Result<String, String> {
+pub fn create_backup(
+    state: State<'_, AppState>,
+    passphrase: Option<String>,
+) -> Result<String, String> {
     let backups_dir = state.app_data_dir.join("backups");
     fs::create_dir_all(&backups_dir).map_err(|e| e.to_string())?;
 
     let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S").to_string();
-    let backup_filename = format!("FreelanceDesk_Backup_{}.db", timestamp);
-    let backup_path = backups_dir.join(&backup_filename);
+    let clean_passphrase = passphrase.as_deref().map(str::trim).filter(|s| !s.is_empty());
 
-    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    if let Some(pass) = clean_passphrase {
+        // Encrypted portable backup (.fdesk)
+        let temp_path = backups_dir.join(format!("temp_export_{}.db", timestamp));
 
-    // Use SQLite Online Backup API while holding the mutex lock
-    let mut dst = Connection::open(&backup_path).map_err(|e| e.to_string())?;
-    let backup = Backup::new(&conn, &mut dst).map_err(|e| e.to_string())?;
-    backup
-        .run_to_completion(100, Duration::from_millis(10), None)
-        .map_err(|e| format!("Backup creation failed: {}", e))?;
+        {
+            let conn = state.db.lock().map_err(|e| e.to_string())?;
+            let mut dst = Connection::open(&temp_path).map_err(|e| e.to_string())?;
+            let backup = Backup::new(&conn, &mut dst).map_err(|e| e.to_string())?;
+            backup
+                .run_to_completion(100, Duration::from_millis(10), None)
+                .map_err(|e| format!("Temporary backup snapshot failed: {}", e))?;
+        }
 
-    Ok(backup_path.to_string_lossy().to_string())
+        // Decrypt client fields in temporary snapshot so DB is in clean canonical format
+        {
+            let mut temp_conn = Connection::open(&temp_path).map_err(|e| e.to_string())?;
+            crate::security::crypto::decrypt_all_client_fields(&mut temp_conn, &state.vault_key)?;
+            // Remove local machine-specific vault key from exported settings
+            let _ = temp_conn.execute("DELETE FROM settings WHERE key = 'local_vault_key'", []);
+            temp_conn
+                .execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")
+                .map_err(|e| e.to_string())?;
+        }
+
+        let raw_bytes = fs::read(&temp_path).map_err(|e| format!("Failed to read temporary snapshot: {}", e))?;
+        let _ = fs::remove_file(&temp_path);
+
+        let encrypted_bytes = crate::security::crypto::encrypt_backup_payload(&raw_bytes, pass)?;
+        let backup_filename = format!("FreelanceDesk_Backup_{}.fdesk", timestamp);
+        let backup_path = backups_dir.join(&backup_filename);
+
+        fs::write(&backup_path, encrypted_bytes)
+            .map_err(|e| format!("Failed to write encrypted backup file: {}", e))?;
+
+        Ok(backup_path.to_string_lossy().to_string())
+    } else {
+        // Standard unencrypted local SQLite backup (.db)
+        let backup_filename = format!("FreelanceDesk_Backup_{}.db", timestamp);
+        let backup_path = backups_dir.join(&backup_filename);
+
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+
+        let mut dst = Connection::open(&backup_path).map_err(|e| e.to_string())?;
+        let backup = Backup::new(&conn, &mut dst).map_err(|e| e.to_string())?;
+        backup
+            .run_to_completion(100, Duration::from_millis(10), None)
+            .map_err(|e| format!("Backup creation failed: {}", e))?;
+
+        Ok(backup_path.to_string_lossy().to_string())
+    }
 }
 
-#[tauri::command]
-pub fn restore_backup(
-    state: State<'_, AppState>,
-    backup_file_path: String,
+fn restore_from_sqlite_path(
+    state: &AppState,
+    source_path: &std::path::Path,
 ) -> Result<String, String> {
-    let source_path = std::path::Path::new(&backup_file_path);
-    if !source_path.exists() {
-        return Err("Selected backup file does not exist".to_string());
-    }
-
     // Verify source database integrity and FreelanceDesk schema
     let verify_conn =
         Connection::open(source_path).map_err(|e| format!("Invalid SQLite backup file: {}", e))?;
@@ -327,6 +363,10 @@ pub fn restore_backup(
             .map_err(|e| format!("Failed to restore database: {}", e))?;
     }
 
+    // Ensure local vault key is configured for this machine and seal clients
+    crate::security::save_vault_key(&conn, &state.vault_key)?;
+    crate::security::crypto::migrate_unencrypted_clients(&mut *conn, &state.vault_key)?;
+
     conn.execute_batch(
         "PRAGMA foreign_keys = ON;
          PRAGMA journal_mode = WAL;
@@ -339,6 +379,46 @@ pub fn restore_backup(
         "Database restored successfully. A safety backup was saved at: {}",
         safety_path.to_string_lossy()
     ))
+}
+
+#[tauri::command]
+pub fn restore_backup(
+    state: State<'_, AppState>,
+    backup_file_path: String,
+    passphrase: Option<String>,
+) -> Result<String, String> {
+    let source_path = std::path::Path::new(&backup_file_path);
+    if !source_path.exists() {
+        return Err("Selected backup file does not exist".to_string());
+    }
+
+    let file_bytes = fs::read(source_path).map_err(|e| format!("Failed to read backup file: {}", e))?;
+
+    let is_encrypted = crate::security::crypto::is_encrypted_backup(&file_bytes)
+        || source_path.extension().map_or(false, |ext| ext == "fdesk");
+
+    if is_encrypted {
+        let pass = match passphrase.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+            Some(p) => p,
+            None => return Err("A passphrase is required to decrypt this protected backup (.fdesk).".to_string()),
+        };
+
+        let decrypted_bytes = crate::security::crypto::decrypt_backup_payload(&file_bytes, pass)?;
+
+        let backups_dir = state.app_data_dir.join("backups");
+        fs::create_dir_all(&backups_dir).map_err(|e| e.to_string())?;
+        let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S").to_string();
+        let temp_restore_path = backups_dir.join(format!("temp_restore_{}.db", timestamp));
+
+        fs::write(&temp_restore_path, decrypted_bytes)
+            .map_err(|e| format!("Failed to write decrypted database snapshot: {}", e))?;
+
+        let res = restore_from_sqlite_path(&state, &temp_restore_path);
+        let _ = fs::remove_file(&temp_restore_path);
+        res
+    } else {
+        restore_from_sqlite_path(&state, source_path)
+    }
 }
 
 #[cfg(test)]
@@ -378,4 +458,31 @@ mod tests {
         conn.execute("DROP TABLE payments", []).unwrap();
         assert!(validate_backup_schema(&conn).is_err());
     }
+
+    #[test]
+    fn fdesk_roundtrip_encryption_and_decryption() {
+        let dummy_db = b"SQLite format 3\0-mock-database-bytes-for-freelancedesk";
+        let pass = "CorrectHorseBatteryStaple!";
+
+        let encrypted = crate::security::crypto::encrypt_backup_payload(dummy_db, pass).unwrap();
+        assert!(crate::security::crypto::is_encrypted_backup(&encrypted));
+
+        let decrypted = crate::security::crypto::decrypt_backup_payload(&encrypted, pass).unwrap();
+        assert_eq!(decrypted, dummy_db);
+
+        let wrong_err = crate::security::crypto::decrypt_backup_payload(&encrypted, "wrong-pass");
+        assert!(wrong_err.is_err());
+    }
+
+    #[test]
+    fn fdesk_rejects_corrupted_payload() {
+        let mut corrupted =
+            crate::security::crypto::encrypt_backup_payload(b"SQLite format 3\0", "testpass").unwrap();
+        let len = corrupted.len();
+        corrupted[len - 1] ^= 0xFF;
+
+        let err = crate::security::crypto::decrypt_backup_payload(&corrupted, "testpass");
+        assert!(err.is_err());
+    }
 }
+

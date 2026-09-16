@@ -8,11 +8,14 @@ import {
   CreditCard,
   FileCheck,
   Palette,
+  Lock,
+  Upload,
 } from "lucide-react";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Select } from "../../components/ui/Select";
 import { Button } from "../../components/ui/Button";
+import { Modal } from "../../components/ui/Modal";
 import { useToast } from "../../components/ui/Toast";
 import { AppSettings, AppInfo } from "../../types/settings";
 import { tauriService } from "../../services/tauri";
@@ -36,6 +39,118 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [activeTab, setActiveTab] = useState<
     "general" | "invoice" | "storage" | "updates"
   >("general");
+
+  // Backup modal state
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
+  const [encryptBackup, setEncryptBackup] = useState(true);
+  const [backupPassphrase, setBackupPassphrase] = useState("");
+  const [confirmPassphrase, setConfirmPassphrase] = useState("");
+  const [isCreatingBackup, setIsCreatingBackup] = useState(false);
+
+  // Restore state
+  const [restoreFilePath, setRestoreFilePath] = useState("");
+  const [restorePassphrase, setRestorePassphrase] = useState("");
+  const [isRestoring, setIsRestoring] = useState(false);
+
+  const handleCreateBackup = async () => {
+    if (encryptBackup) {
+      if (!backupPassphrase) {
+        showToast({
+          type: "danger",
+          message: "Please enter a passphrase to encrypt your backup.",
+        });
+        return;
+      }
+      if (backupPassphrase !== confirmPassphrase) {
+        showToast({
+          type: "danger",
+          message: "Passphrases do not match.",
+        });
+        return;
+      }
+      if (backupPassphrase.length < 8) {
+        showToast({
+          type: "warning",
+          message:
+            "Passphrase should be at least 8 characters for stronger security.",
+        });
+      }
+    }
+
+    setIsCreatingBackup(true);
+    try {
+      const path = await tauriService.createBackup(
+        encryptBackup ? backupPassphrase : undefined,
+      );
+      showToast({
+        type: "success",
+        message: `Backup created successfully at:\n${path}`,
+      });
+      setIsBackupModalOpen(false);
+      setBackupPassphrase("");
+      setConfirmPassphrase("");
+    } catch (err) {
+      console.error("Backup failed:", err);
+      showToast({
+        type: "danger",
+        message: `Backup failed: ${err}`,
+      });
+    } finally {
+      setIsCreatingBackup(false);
+    }
+  };
+
+  const handleRestoreBackup = async () => {
+    const trimmedPath = restoreFilePath.trim();
+    if (!trimmedPath) {
+      showToast({
+        type: "danger",
+        message: "Please enter the full path to a backup file (.fdesk or .db).",
+      });
+      return;
+    }
+
+    const isEncrypted = trimmedPath.toLowerCase().endsWith(".fdesk");
+    if (isEncrypted && !restorePassphrase.trim()) {
+      showToast({
+        type: "danger",
+        message:
+          "Please enter the passphrase for this encrypted .fdesk backup.",
+      });
+      return;
+    }
+
+    if (
+      !confirm(
+        "Restore this database? An automatic safety backup will be created first.",
+      )
+    ) {
+      return;
+    }
+
+    setIsRestoring(true);
+    try {
+      const res = await tauriService.restoreBackup(
+        trimmedPath,
+        restorePassphrase.trim() || undefined,
+      );
+      showToast({
+        type: "success",
+        message: res,
+      });
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err) {
+      console.error("Restore failed:", err);
+      showToast({
+        type: "danger",
+        message: `Restore failed: ${err}`,
+      });
+    } finally {
+      setIsRestoring(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -456,79 +571,77 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
               }
             >
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-xs font-semibold text-[#1C1917]">
+                    <div className="text-xs font-semibold text-[#1C1917] flex items-center gap-1.5">
+                      <Lock size={13} className="text-[#854D0E]" />
                       Create Portable Snapshot
                     </div>
-                    <div className="text-[11px] text-[#78716C]">
-                      Create a self-contained local copy of your database.
+                    <div className="text-[11px] text-[#78716C] mt-0.5">
+                      Export your ledger as an encrypted portable archive
+                      (.fdesk) or standard .db snapshot.
                     </div>
                   </div>
                   <Button
                     type="button"
                     variant="secondary"
                     size="sm"
-                    onClick={async () => {
-                      try {
-                        const path = await tauriService.createBackup();
-                        alert(`Backup created successfully at:\n${path}`);
-                      } catch (err) {
-                        alert(`Backup failed: ${err}`);
-                      }
-                    }}
+                    onClick={() => setIsBackupModalOpen(true)}
                   >
                     Create Backup
                   </Button>
                 </div>
 
-                <div className="border-t border-[#E5E0D5] pt-4">
-                  <div className="text-xs font-semibold text-[#1C1917]">
-                    Restore Database from Backup
+                <div className="border-t border-[#E5E0D5] pt-4 space-y-3">
+                  <div>
+                    <div className="text-xs font-semibold text-[#1C1917] flex items-center gap-1.5">
+                      <Upload size={13} className="text-[#854D0E]" />
+                      Restore Database from Backup
+                    </div>
+                    <p className="text-[11px] text-[#78716C] mt-0.5">
+                      Restores your records from a .fdesk or .db backup file. A
+                      safety backup of your current database is always created
+                      automatically prior to restoring.
+                    </p>
                   </div>
-                  <p className="text-[11px] text-[#78716C] mt-0.5">
-                    Restores your records. A safety backup of your current
-                    database is always created automatically prior to restoring.
-                  </p>
-                  <div className="mt-3 flex items-center gap-2">
-                    <input
-                      type="text"
-                      id="restore-path-input"
-                      placeholder="Full path to .db backup file"
-                      className="flex-1 rounded-md border border-[#E5E0D5] bg-white px-3 py-1.5 text-xs text-[#1C1917] font-mono"
-                    />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-medium text-[#57534E] mb-1">
+                        Backup File Path
+                      </label>
+                      <input
+                        type="text"
+                        value={restoreFilePath}
+                        onChange={(e) => setRestoreFilePath(e.target.value)}
+                        placeholder="Full path to .fdesk or .db file"
+                        className="w-full rounded-md border border-[#E5E0D5] bg-white px-3 py-1.5 text-xs text-[#1C1917] font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-[#57534E] mb-1">
+                        Passphrase (for .fdesk archives)
+                      </label>
+                      <input
+                        type="password"
+                        value={restorePassphrase}
+                        onChange={(e) => setRestorePassphrase(e.target.value)}
+                        placeholder="Required only if backup was encrypted"
+                        className="w-full rounded-md border border-[#E5E0D5] bg-white px-3 py-1.5 text-xs text-[#1C1917]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
                     <Button
                       type="button"
                       variant="danger"
                       size="sm"
-                      onClick={async () => {
-                        const input = document.getElementById(
-                          "restore-path-input",
-                        ) as HTMLInputElement;
-                        const val = input?.value.trim();
-                        if (!val) {
-                          alert(
-                            "Please enter the full path to a backup .db file.",
-                          );
-                          return;
-                        }
-                        if (
-                          confirm(
-                            "Restore this database? An automatic safety backup will be created first.",
-                          )
-                        ) {
-                          try {
-                            const res = await tauriService.restoreBackup(val);
-                            alert(res);
-                            window.location.reload();
-                          } catch (err) {
-                            alert(`Restore failed: ${err}`);
-                          }
-                        }
-                      }}
+                      disabled={isRestoring || !restoreFilePath.trim()}
+                      onClick={handleRestoreBackup}
                     >
-                      Restore
+                      {isRestoring ? "Restoring..." : "Restore Database"}
                     </Button>
                   </div>
                 </div>
@@ -543,6 +656,96 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         )}
       </form>
+
+      {/* Create Backup Modal */}
+      <Modal
+        isOpen={isBackupModalOpen}
+        onClose={() => !isCreatingBackup && setIsBackupModalOpen(false)}
+        title="Create Database Backup"
+        description="Choose backup encryption options for cloud storage or cross-device transfer."
+      >
+        <div className="space-y-4 text-xs">
+          <div className="p-3 bg-[#FAF8F5] border border-[#E5E0D5] rounded-md space-y-2">
+            <label className="flex items-start gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={encryptBackup}
+                onChange={(e) => setEncryptBackup(e.target.checked)}
+                className="mt-0.5 rounded border-[#D6D3D1] text-[#854D0E] focus:ring-[#854D0E]"
+              />
+              <div>
+                <span className="font-semibold text-[#1C1917]">
+                  Protect backup with passphrase (recommended)
+                </span>
+                <p className="text-[11px] text-[#78716C] mt-0.5 leading-relaxed">
+                  Encrypts your entire database archive with Argon2id and
+                  AES-256-GCM (.fdesk). Safe for Google Drive, OneDrive, USB
+                  drives, or transferring to another computer.
+                </p>
+              </div>
+            </label>
+          </div>
+
+          {encryptBackup ? (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-medium text-[#57534E] mb-1">
+                  Passphrase
+                </label>
+                <input
+                  type="password"
+                  value={backupPassphrase}
+                  onChange={(e) => setBackupPassphrase(e.target.value)}
+                  placeholder="Enter a strong passphrase"
+                  className="w-full rounded-md border border-[#E5E0D5] bg-white px-3 py-2 text-xs text-[#1C1917]"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-[#57534E] mb-1">
+                  Confirm Passphrase
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassphrase}
+                  onChange={(e) => setConfirmPassphrase(e.target.value)}
+                  placeholder="Confirm passphrase"
+                  className="w-full rounded-md border border-[#E5E0D5] bg-white px-3 py-2 text-xs text-[#1C1917]"
+                />
+              </div>
+              <p className="text-[11px] text-[#A8A29E] italic">
+                Remember this passphrase. Without it, the encrypted archive
+                cannot be recovered.
+              </p>
+            </div>
+          ) : (
+            <div className="p-2.5 rounded bg-[#FEF3C7] border border-[#FDE68A] text-[#92400E] text-[11px]">
+              An unencrypted SQLite .db file will be created. Keep it on this
+              local machine.
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-[#E5E0D5]">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={isCreatingBackup}
+              onClick={() => setIsBackupModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              disabled={isCreatingBackup}
+              onClick={handleCreateBackup}
+            >
+              {isCreatingBackup ? "Creating..." : "Export Backup"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

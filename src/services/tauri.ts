@@ -197,11 +197,17 @@ export const tauriService = {
   },
 
   // Backup & Restore
-  async createBackup(): Promise<string> {
-    return await invoke<string>("create_backup");
+  async createBackup(passphrase?: string): Promise<string> {
+    return await invoke<string>("create_backup", { passphrase });
   },
 
-  async restoreBackup(backupFilePath: string): Promise<string> {
-    return await invoke<string>("restore_backup", { backupFilePath });
+  async restoreBackup(
+    backupFilePath: string,
+    passphrase?: string,
+  ): Promise<string> {
+    return await invoke<string>("restore_backup", {
+      backupFilePath,
+      passphrase,
+    });
   },
 };
