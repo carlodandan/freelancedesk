@@ -37,6 +37,7 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
   const [clients, setClients] = useState<ClientItem[]>([]);
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -60,6 +61,7 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
 
   const loadData = async () => {
     setIsLoading(true);
+    setLoadError(null);
     try {
       const [commData, clientData, projData] = await Promise.all([
         tauriService.getCommissions(),
@@ -74,6 +76,7 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
       }
     } catch (err) {
       console.error("Failed to load commissions:", err);
+      setLoadError(err instanceof Error ? err.message : String(err));
     } finally {
       setIsLoading(false);
     }
@@ -115,6 +118,8 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
         0,
       );
       setPriceInput((totalCents / 100).toString());
+    } else {
+      setPriceInput("0");
     }
   };
 
@@ -283,6 +288,15 @@ export const CommissionsView: React.FC<CommissionsViewProps> = ({
           commissions
         </div>
       </div>
+
+      {loadError && (
+        <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-800 text-xs flex items-center justify-between">
+          <span>Failed to load commissions data: {loadError}</span>
+          <Button variant="secondary" size="sm" onClick={loadData}>
+            Retry
+          </Button>
+        </div>
+      )}
 
       {/* Commissions Table */}
       {filteredCommissions.length > 0 ? (

@@ -11,37 +11,21 @@ pub fn get_projects(
 ) -> Result<Vec<ProjectItem>, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;
 
-    let sql = match &client_id {
-        Some(_) => "
-            SELECT 
-                p.id, p.client_id, c.name as client_name, p.name, p.description, 
-                p.start_date, p.deadline, p.status, p.price_cents,
-                COALESCE((SELECT SUM(py.amount_cents) FROM payments py WHERE py.project_id = p.id), 0) as total_paid,
-                p.notes, p.created_at, p.updated_at
-            FROM projects p
-            JOIN clients c ON p.client_id = c.id
-            WHERE p.client_id = ?1
-            ORDER BY p.created_at DESC",
-        None => "
-            SELECT 
-                p.id, p.client_id, c.name as client_name, p.name, p.description, 
-                p.start_date, p.deadline, p.status, p.price_cents,
-                COALESCE((SELECT SUM(py.amount_cents) FROM payments py WHERE py.project_id = p.id), 0) as total_paid,
-                p.notes, p.created_at, p.updated_at
-            FROM projects p
-            JOIN clients c ON p.client_id = c.id
-            ORDER BY p.created_at DESC",
-    };
+    let sql = "
+        SELECT 
+            p.id, p.client_id, c.name as client_name, p.name, p.description, 
+            p.start_date, p.deadline, p.status, p.price_cents,
+            COALESCE((SELECT SUM(py.amount_cents) FROM payments py WHERE py.project_id = p.id), 0) as total_paid,
+            p.notes, p.created_at, p.updated_at
+        FROM projects p
+        JOIN clients c ON p.client_id = c.id
+        WHERE (?1 IS NULL OR p.client_id = ?1)
+        ORDER BY p.created_at DESC";
 
     let mut stmt = conn.prepare(sql).map_err(|e| e.to_string())?;
-    let rows = match &client_id {
-        Some(cid) => stmt
-            .query_map(params![cid], map_project_row)
-            .map_err(|e| e.to_string())?,
-        None => stmt
-            .query_map([], map_project_row)
-            .map_err(|e| e.to_string())?,
-    };
+    let rows = stmt
+        .query_map(params![client_id], map_project_row)
+        .map_err(|e| e.to_string())?;
 
     rows.collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())

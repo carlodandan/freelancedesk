@@ -16,10 +16,15 @@ let pending: Promise<Update | null> | null = null;
 
 export function checkForUpdate(force = false): Promise<Update | null> {
   if (force) pending = null;
-  pending ??= check().catch((error: unknown) => {
-    pending = null; // do not cache failures
-    throw error;
-  });
+  if (!pending) {
+    const promise: Promise<Update | null> = check().catch((error: unknown) => {
+      if (pending === promise) {
+        pending = null; // do not cache failures
+      }
+      throw error;
+    });
+    pending = promise;
+  }
   return pending;
 }
 

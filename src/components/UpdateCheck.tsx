@@ -17,7 +17,7 @@ interface UpdateCheckProps {
 }
 
 export const UpdateCheck: React.FC<UpdateCheckProps> = ({
-  currentVersion = "0.0.1",
+  currentVersion = "0.0.2",
 }) => {
   const { state, check, install } = useUpdater();
   const [confirming, setConfirming] = useState(false);

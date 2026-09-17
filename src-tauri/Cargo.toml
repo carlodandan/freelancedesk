@@ -1,6 +1,6 @@
 [package]
 name = "freelancedesk"
-version = "0.0.1"
+version = "0.0.2"
 description = "A desktop (Windows) application for freelancer that lets you manage and track all your current commissions."
 authors = ["you"]
 edition = "2021"
@@ -26,9 +26,10 @@ rusqlite = { version = "0.33", features = ["bundled", "backup"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 thiserror = "2"
-
-[dev-dependencies]
-tauri = { version = "2", features = ["test"] }
+aes-gcm = "0.10"
+argon2 = "0.5"
+rand = "0.8"
+base64 = "0.22"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

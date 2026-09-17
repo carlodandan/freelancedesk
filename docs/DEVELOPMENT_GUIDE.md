@@ -143,8 +143,8 @@ strip = true          # Strips debug symbols from executable
 
 ### Installer Output Locations
 Generated installers are deposited in:
-* **MSI Installer**: `src-tauri/target/release/bundle/msi/FreelanceDesk_0.0.1_x64_en-US.msi`
-* **NSIS Setup**: `src-tauri/target/release/bundle/nsis/FreelanceDesk_0.0.1_x64-setup.exe`
+* **MSI Installer**: `src-tauri/target/release/bundle/msi/FreelanceDesk_0.0.2_x64_en-US.msi`
+* **NSIS Setup**: `src-tauri/target/release/bundle/nsis/FreelanceDesk_0.0.2_x64-setup.exe`
 
 ---
 

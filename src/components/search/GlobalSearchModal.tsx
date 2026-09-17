@@ -248,7 +248,10 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                   return (
                     <button
                       key={item.tab}
-                      onClick={() => onNavigate(item.tab)}
+                      onClick={() => {
+                        onNavigate(item.tab);
+                        onClose();
+                      }}
                       onMouseEnter={() => setSelectedIndex(idx)}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors cursor-pointer group ${
                         isSelected

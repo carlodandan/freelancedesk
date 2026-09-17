@@ -4,6 +4,7 @@ use rusqlite::params;
 use tauri::State;
 use uuid::Uuid;
 
+/// Lists expenses, optionally filtered by category or project.
 #[tauri::command]
 pub fn get_expenses(
     state: State<'_, AppState>,
@@ -49,6 +50,7 @@ pub fn get_expenses(
         .map_err(|e| e.to_string())
 }
 
+/// Records an expense and its corresponding activity entry atomically.
 #[tauri::command]
 pub fn create_expense(
     state: State<'_, AppState>,
@@ -128,6 +130,7 @@ pub fn create_expense(
     })
 }
 
+/// Deletes an expense and records the deletion in the activity log.
 #[tauri::command]
 pub fn delete_expense(state: State<'_, AppState>, id: String) -> Result<bool, String> {
     let mut conn = state.db.lock().map_err(|e| e.to_string())?;
@@ -149,6 +152,7 @@ pub fn delete_expense(state: State<'_, AppState>, id: String) -> Result<bool, St
     Ok(true)
 }
 
+/// Lists expense categories in display-name order.
 #[tauri::command]
 pub fn get_expense_categories(
     state: State<'_, AppState>,
@@ -174,6 +178,7 @@ pub fn get_expense_categories(
         .map_err(|e| e.to_string())
 }
 
+/// Creates a user-defined expense category.
 #[tauri::command]
 pub fn create_expense_category(
     state: State<'_, AppState>,

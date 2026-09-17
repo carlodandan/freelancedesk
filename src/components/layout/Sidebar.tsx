@@ -14,6 +14,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { NavigationTab } from "../../types/navigation";
+import freelancedeskLogo from "../../assets/freelancedesk.png";
 
 interface SidebarNavItem {
   id: NavigationTab;
@@ -132,15 +133,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div>
         <div className="h-16 flex items-center px-6 border-b border-[#E5E0D5] bg-[#F3EFE6]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded bg-[#854D0E] flex items-center justify-center text-white font-serif font-bold text-base shadow-xs">
-              F
-            </div>
+            <img
+              src={freelancedeskLogo}
+              alt="FreelanceDesk"
+              className="w-8 h-8 rounded object-cover shadow-xs"
+            />
             <div>
               <div className="font-semibold text-sm text-[#1C1917] tracking-tight leading-none">
                 FreelanceDesk
               </div>
               <div className="text-[11px] text-[#8C867A] mt-1 font-mono tracking-wider">
-                LEDGER v0.0.1
+                LEDGER v0.0.2
               </div>
             </div>
           </div>

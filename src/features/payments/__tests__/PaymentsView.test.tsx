@@ -3,12 +3,17 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { PaymentsView } from "../PaymentsView";
 import { tauriService } from "../../../services/tauri";
+import { generateReceiptPdf } from "../../../services/pdf";
 import {
   PaymentItem,
   ClientItem,
   CommissionItem,
 } from "../../../types/entities";
 import { AppSettings } from "../../../types/settings";
+
+vi.mock("../../../services/pdf", () => ({
+  generateReceiptPdf: vi.fn(),
+}));
 
 const mockSettings: AppSettings = {
   business_name: "Test Studio",
@@ -142,6 +147,6 @@ describe("PaymentsView Component", () => {
     const receiptBtn = screen.getByTitle("Download Official Receipt PDF");
     await user.click(receiptBtn);
 
-    expect(receiptBtn).toBeInTheDocument();
+    expect(generateReceiptPdf).toHaveBeenCalled();
   });
 });

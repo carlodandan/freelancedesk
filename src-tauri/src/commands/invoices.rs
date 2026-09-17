@@ -27,12 +27,14 @@ pub fn get_invoices(
     let rows = stmt
         .query_map(params![client_id], |row| {
             let inv_id: String = row.get(0)?;
+            let raw_email: Option<String> = row.get(3)?;
+            let raw_address: Option<String> = row.get(4)?;
             Ok(InvoiceItem {
                 id: inv_id,
                 client_id: row.get(1)?,
                 client_name: row.get(2)?,
-                client_email: row.get(3)?,
-                client_address: row.get(4)?,
+                client_email: raw_email.map(|s| crate::security::crypto::decrypt_field(&s, &state.vault_key)),
+                client_address: raw_address.map(|s| crate::security::crypto::decrypt_field(&s, &state.vault_key)),
                 invoice_number: row.get(5)?,
                 issue_date: row.get(6)?,
                 due_date: row.get(7)?,
@@ -52,18 +54,21 @@ pub fn get_invoices(
         })
         .map_err(|e| e.to_string())?;
 
-    let mut invoices = Vec::new();
-    for inv in rows.flatten() {
-        invoices.push(inv);
-    }
+    let mut invoices: Vec<InvoiceItem> = rows
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
 
     // Attach items
     for inv in &mut invoices {
-        if let Ok(mut item_stmt) = conn.prepare(
-            "SELECT id, commission_id, description, quantity, unit_price_cents, total_price_cents, sort_order
-             FROM invoice_items WHERE invoice_id = ?1 ORDER BY sort_order ASC",
-        ) {
-            if let Ok(item_rows) = item_stmt.query_map(params![inv.id], |r| {
+        let mut item_stmt = conn
+            .prepare(
+                "SELECT id, commission_id, description, quantity, unit_price_cents, total_price_cents, sort_order
+                 FROM invoice_items WHERE invoice_id = ?1 ORDER BY sort_order ASC",
+            )
+            .map_err(|e| e.to_string())?;
+
+        let item_rows = item_stmt
+            .query_map(params![inv.id], |r| {
                 Ok(InvoiceLineItem {
                     id: r.get(0)?,
                     commission_id: r.get(1)?,
@@ -73,13 +78,43 @@ pub fn get_invoices(
                     total_price_cents: r.get(5)?,
                     sort_order: r.get(6)?,
                 })
-            }) {
-                inv.items = item_rows.flatten().collect();
-            }
-        }
+            })
+            .map_err(|e| e.to_string())?;
+
+        inv.items = item_rows
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
     }
 
     Ok(invoices)
+}
+
+pub(crate) fn generate_next_invoice_number(
+    conn: &rusqlite::Connection,
+    prefix: &str,
+    year: &str,
+) -> Result<String, String> {
+    let pattern = format!("{}-{}-%", prefix, year);
+    let mut stmt = conn
+        .prepare("SELECT invoice_number FROM invoices WHERE invoice_number LIKE ?1")
+        .map_err(|e| e.to_string())?;
+    let existing_numbers: Vec<String> = stmt
+        .query_map(params![pattern], |r| r.get(0))
+        .map_err(|e| e.to_string())?
+        .filter_map(Result::ok)
+        .collect();
+
+    let mut max_seq = 0;
+    for num in existing_numbers {
+        if let Some(suffix) = num.split('-').last() {
+            if let Ok(seq) = suffix.parse::<i64>() {
+                if seq > max_seq {
+                    max_seq = seq;
+                }
+            }
+        }
+    }
+    Ok(format!("{}-{}-{:03}", prefix, year, max_seq + 1))
 }
 
 #[tauri::command]
@@ -92,13 +127,16 @@ pub fn create_invoice(
     let id = Uuid::new_v4().to_string();
 
     // Fetch client details
-    let (client_name, client_email, client_address): (String, Option<String>, Option<String>) =
+    let (client_name, raw_email, raw_address): (String, Option<String>, Option<String>) =
         conn.query_row(
             "SELECT name, email, address FROM clients WHERE id = ?1",
             params![input.client_id],
             |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
         )
         .map_err(|_| "Client not found".to_string())?;
+
+    let client_email = raw_email.map(|s| crate::security::crypto::decrypt_field(&s, &state.vault_key));
+    let client_address = raw_address.map(|s| crate::security::crypto::decrypt_field(&s, &state.vault_key));
 
     // Fetch invoice prefix
     let prefix: String = conn
@@ -111,30 +149,7 @@ pub fn create_invoice(
 
     // Generate unique sequential invoice number based on existing sequence
     let current_year = chrono::Utc::now().format("%Y").to_string();
-    let pattern = format!("{}-{}-%", prefix, current_year);
-    let existing_numbers: Vec<String> = {
-        let mut stmt = conn
-            .prepare("SELECT invoice_number FROM invoices WHERE invoice_number LIKE ?1")
-            .map_err(|e| e.to_string())?;
-        let list = stmt
-            .query_map(params![pattern], |r| r.get(0))
-            .map_err(|e| e.to_string())?
-            .filter_map(Result::ok)
-            .collect();
-        list
-    };
-
-    let mut max_seq = 0;
-    for num in existing_numbers {
-        if let Some(suffix) = num.split('-').last() {
-            if let Ok(seq) = suffix.parse::<i64>() {
-                if seq > max_seq {
-                    max_seq = seq;
-                }
-            }
-        }
-    }
-    let invoice_number = format!("{}-{}-{:03}", prefix, current_year, max_seq + 1);
+    let invoice_number = generate_next_invoice_number(&conn, &prefix, &current_year)?;
 
     // Calculate subtotal from line items
     let mut subtotal_cents: i64 = 0;

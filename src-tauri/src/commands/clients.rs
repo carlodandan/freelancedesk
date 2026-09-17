@@ -4,9 +4,11 @@ use rusqlite::params;
 use tauri::State;
 use uuid::Uuid;
 
+/// Lists clients with decrypted contact details and aggregate billing totals.
 #[tauri::command]
 pub fn get_clients(state: State<'_, AppState>) -> Result<Vec<ClientItem>, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let key = &state.vault_key;
 
     let sql = "
         SELECT 
@@ -29,15 +31,21 @@ pub fn get_clients(state: State<'_, AppState>) -> Result<Vec<ClientItem>, String
                 0
             };
 
+            let email_raw: Option<String> = row.get(3)?;
+            let phone_raw: Option<String> = row.get(4)?;
+            let handle_raw: Option<String> = row.get(5)?;
+            let address_raw: Option<String> = row.get(6)?;
+            let notes_raw: Option<String> = row.get(7)?;
+
             Ok(ClientItem {
                 id: row.get(0)?,
                 name: row.get(1)?,
                 company_name: row.get(2)?,
-                email: row.get(3)?,
-                phone: row.get(4)?,
-                contact_handle: row.get(5)?,
-                address: row.get(6)?,
-                notes: row.get(7)?,
+                email: email_raw.map(|s| crate::security::crypto::decrypt_field(&s, key)),
+                phone: phone_raw.map(|s| crate::security::crypto::decrypt_field(&s, key)),
+                contact_handle: handle_raw.map(|s| crate::security::crypto::decrypt_field(&s, key)),
+                address: address_raw.map(|s| crate::security::crypto::decrypt_field(&s, key)),
+                notes: notes_raw.map(|s| crate::security::crypto::decrypt_field(&s, key)),
                 status: row.get(8)?,
                 total_billed_cents: total_billed,
                 total_paid_cents: total_paid,
@@ -49,23 +57,45 @@ pub fn get_clients(state: State<'_, AppState>) -> Result<Vec<ClientItem>, String
         })
         .map_err(|e| e.to_string())?;
 
-    let mut clients = Vec::new();
-    for client in rows.flatten() {
-        clients.push(client);
-    }
+    let clients = rows
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
 
     Ok(clients)
 }
 
+/// Creates a client while encrypting sensitive contact fields at rest.
 #[tauri::command]
 pub fn create_client(
     state: State<'_, AppState>,
     input: CreateClientInput,
 ) -> Result<ClientItem, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let key = &state.vault_key;
 
     let id = Uuid::new_v4().to_string();
     let status = input.status.unwrap_or_else(|| "active".to_string());
+
+    let enc_email = match input.email.as_deref() {
+        Some(s) => Some(crate::security::crypto::encrypt_field(s, key)?),
+        None => None,
+    };
+    let enc_phone = match input.phone.as_deref() {
+        Some(s) => Some(crate::security::crypto::encrypt_field(s, key)?),
+        None => None,
+    };
+    let enc_handle = match input.contact_handle.as_deref() {
+        Some(s) => Some(crate::security::crypto::encrypt_field(s, key)?),
+        None => None,
+    };
+    let enc_address = match input.address.as_deref() {
+        Some(s) => Some(crate::security::crypto::encrypt_field(s, key)?),
+        None => None,
+    };
+    let enc_notes = match input.notes.as_deref() {
+        Some(s) => Some(crate::security::crypto::encrypt_field(s, key)?),
+        None => None,
+    };
 
     conn.execute(
         "INSERT INTO clients (id, name, company_name, email, phone, contact_handle, address, notes, status, created_at, updated_at)
@@ -74,11 +104,11 @@ pub fn create_client(
             id,
             input.name.trim(),
             input.company_name.as_deref().map(str::trim),
-            input.email.as_deref().map(str::trim),
-            input.phone.as_deref().map(str::trim),
-            input.contact_handle.as_deref().map(str::trim),
-            input.address.as_deref().map(str::trim),
-            input.notes.as_deref().map(str::trim),
+            enc_email,
+            enc_phone,
+            enc_handle,
+            enc_address,
+            enc_notes,
             status
         ],
     )
@@ -110,9 +140,32 @@ pub fn create_client(
     })
 }
 
+/// Updates a client and re-encrypts all sensitive contact fields.
 #[tauri::command]
 pub fn update_client(state: State<'_, AppState>, input: UpdateClientInput) -> Result<bool, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let key = &state.vault_key;
+
+    let enc_email = match input.email.as_deref() {
+        Some(s) => Some(crate::security::crypto::encrypt_field(s, key)?),
+        None => None,
+    };
+    let enc_phone = match input.phone.as_deref() {
+        Some(s) => Some(crate::security::crypto::encrypt_field(s, key)?),
+        None => None,
+    };
+    let enc_handle = match input.contact_handle.as_deref() {
+        Some(s) => Some(crate::security::crypto::encrypt_field(s, key)?),
+        None => None,
+    };
+    let enc_address = match input.address.as_deref() {
+        Some(s) => Some(crate::security::crypto::encrypt_field(s, key)?),
+        None => None,
+    };
+    let enc_notes = match input.notes.as_deref() {
+        Some(s) => Some(crate::security::crypto::encrypt_field(s, key)?),
+        None => None,
+    };
 
     conn.execute(
         "UPDATE clients
@@ -121,11 +174,11 @@ pub fn update_client(state: State<'_, AppState>, input: UpdateClientInput) -> Re
         params![
             input.name.trim(),
             input.company_name.as_deref().map(str::trim),
-            input.email.as_deref().map(str::trim),
-            input.phone.as_deref().map(str::trim),
-            input.contact_handle.as_deref().map(str::trim),
-            input.address.as_deref().map(str::trim),
-            input.notes.as_deref().map(str::trim),
+            enc_email,
+            enc_phone,
+            enc_handle,
+            enc_address,
+            enc_notes,
             input.status,
             input.id
         ],
@@ -142,6 +195,7 @@ pub fn update_client(state: State<'_, AppState>, input: UpdateClientInput) -> Re
     Ok(true)
 }
 
+/// Deletes an unused client or archives one that has related ledger records.
 #[tauri::command]
 pub fn delete_client(state: State<'_, AppState>, id: String) -> Result<bool, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;

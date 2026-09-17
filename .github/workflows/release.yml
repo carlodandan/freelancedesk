@@ -1,9 +1,6 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
 
 jobs:
@@ -25,7 +22,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Build & Publish Release with Updater Artifacts
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -33,5 +30,6 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: "FreelanceDesk v__VERSION__"
+          generateReleaseNotes: true
           releaseDraft: false
           prerelease: false

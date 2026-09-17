@@ -2,12 +2,7 @@
 mod tests {
     use crate::commands;
     use crate::database::migrations::run_migrations;
-    use crate::models::entities::{CreateInvoiceInput, CreateInvoiceLineItemInput};
-    use crate::AppState;
     use rusqlite::{params, Connection};
-    use std::path::PathBuf;
-    use std::sync::Mutex;
-    use tauri::Manager;
     use uuid::Uuid;
 
     fn create_test_db() -> Connection {
@@ -163,68 +158,45 @@ mod tests {
 
     #[test]
     fn test_invoice_sequential_numbering_logic() {
-        let app = tauri::test::mock_builder()
-            .manage(AppState {
-                db: Mutex::new(create_test_db()),
-                app_data_dir: PathBuf::new(),
-                db_path: PathBuf::from(":memory:"),
-            })
-            .build(tauri::test::mock_context(tauri::test::noop_assets()))
-            .expect("Failed to build test app");
-        let state = app.state::<AppState>();
+        let conn = create_test_db();
         let client_id = Uuid::new_v4().to_string();
         let current_year = chrono::Utc::now().format("%Y").to_string();
+        let prefix = "INV";
 
-        {
-            let conn = state.db.lock().unwrap();
-            conn.execute(
-                "INSERT INTO clients (id, name) VALUES (?1, 'Juan Dela Cruz')",
-                params![client_id],
-            )
-            .unwrap();
+        conn.execute(
+            "INSERT INTO clients (id, name) VALUES (?1, 'Juan Dela Cruz')",
+            params![client_id],
+        )
+        .unwrap();
 
-            let first_id = Uuid::new_v4().to_string();
-            conn.execute(
-                "INSERT INTO invoices (id, client_id, invoice_number, subtotal_cents, total_cents, issue_date)
-                 VALUES (?1, ?2, ?3, 100000, 100000, '2026-09-14')",
-                params![first_id, client_id, format!("INV-{}-001", current_year)],
-            )
-            .unwrap();
-            conn.execute(
-                "INSERT INTO invoices (id, client_id, invoice_number, subtotal_cents, total_cents, issue_date)
-                 VALUES (?1, ?2, ?3, 100000, 100000, '2026-09-14')",
-                params![
-                    Uuid::new_v4().to_string(),
-                    client_id,
-                    format!("INV-{}-002", current_year)
-                ],
-            )
-            .unwrap();
-            conn.execute("DELETE FROM invoices WHERE id = ?1", params![first_id])
-                .unwrap();
-        }
-
-        let invoice = commands::invoices::create_invoice(
-            state,
-            CreateInvoiceInput {
+        let first_id = Uuid::new_v4().to_string();
+        conn.execute(
+            "INSERT INTO invoices (id, client_id, invoice_number, subtotal_cents, total_cents, issue_date)
+             VALUES (?1, ?2, ?3, 100000, 100000, '2026-09-14')",
+            params![first_id, client_id, format!("INV-{}-001", current_year)],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO invoices (id, client_id, invoice_number, subtotal_cents, total_cents, issue_date)
+             VALUES (?1, ?2, ?3, 100000, 100000, '2026-09-14')",
+            params![
+                Uuid::new_v4().to_string(),
                 client_id,
-                issue_date: "2026-09-14".to_string(),
-                due_date: None,
-                discount_cents: None,
-                tax_rate_bps: None,
-                notes: None,
-                payment_instructions: None,
-                items: vec![CreateInvoiceLineItemInput {
-                    commission_id: None,
-                    description: "Test service".to_string(),
-                    quantity: 1,
-                    unit_price_cents: 100000,
-                }],
-            },
+                format!("INV-{}-002", current_year)
+            ],
+        )
+        .unwrap();
+        conn.execute("DELETE FROM invoices WHERE id = ?1", params![first_id])
+            .unwrap();
+
+        let next_invoice_num = commands::invoices::generate_next_invoice_number(
+            &conn,
+            prefix,
+            &current_year,
         )
         .expect("Production invoice allocation failed");
 
-        assert_eq!(invoice.invoice_number, format!("INV-{}-003", current_year));
+        assert_eq!(next_invoice_num, format!("INV-{}-003", current_year));
     }
 
     #[test]

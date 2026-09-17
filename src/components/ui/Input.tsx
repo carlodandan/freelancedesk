@@ -23,8 +23,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     ref,
   ) => {
     const generatedId = useId();
-    const inputId =
-      id || (label ? label.toLowerCase().replace(/\s+/g, "-") : generatedId);
+    const inputId = id || generatedId;
 
     const descId = error || hint ? `${inputId}-desc` : undefined;
 

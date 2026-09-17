@@ -2,6 +2,7 @@ use crate::models::app::AppInfo;
 use crate::AppState;
 use tauri::State;
 
+/// Returns application metadata and the path of the active local database.
 #[tauri::command]
 pub fn get_app_info(state: State<'_, AppState>) -> Result<AppInfo, String> {
     let conn_healthy = match state.db.lock() {

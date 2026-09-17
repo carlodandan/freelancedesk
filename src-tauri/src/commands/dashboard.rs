@@ -4,6 +4,7 @@ use crate::models::dashboard::{
 use crate::AppState;
 use tauri::State;
 
+/// Aggregates financial totals, deadlines, and recent activity for the dashboard.
 #[tauri::command]
 pub fn get_dashboard_summary(state: State<'_, AppState>) -> Result<DashboardSummary, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;

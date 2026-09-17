@@ -49,7 +49,8 @@ Retrieves user preferences, profile details, currency configurations, and ledger
   "default_payment_terms": "Payment due within 15 days.",
   "theme": "paper",
   "auto_backup_enabled": false,
-  "backup_frequency": "weekly"
+  "backup_frequency": "weekly",
+  "backup_location": null
 }
 ```
 
@@ -75,7 +76,7 @@ Returns native desktop application metadata and storage path locations.
 ```json
 {
   "name": "FreelanceDesk",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "data_dir": "C:\\Users\\Administrator\\AppData\\Roaming\\com.carlodandan.freelancedesk",
   "database_path": "C:\\Users\\Administrator\\AppData\\Roaming\\com.carlodandan.freelancedesk\\database\\freelance.db"
 }
@@ -112,7 +113,7 @@ Aggregates high-level metrics for the primary dashboard view.
 ## 4. Clients Commands
 
 ### `get_clients`
-Fetches all client records ordered by creation date descending.
+Fetches all client records ordered by creation date descending. Sensitive fields (`email`, `phone`, `contact_handle`, `address`, `notes`) are transparently decrypted in memory using the local Windows DPAPI vault key.
 
 * **TypeScript Wrapper**: `tauriService.getClients(): Promise<ClientItem[]>`
 * **Arguments**: None
@@ -121,23 +122,23 @@ Fetches all client records ordered by creation date descending.
 ---
 
 ### `create_client`
-Registers a new client ledger profile.
+Registers a new client ledger profile. Sensitive contact fields (`email`, `phone`, `contact_handle`, `address`, `notes`) are automatically sealed with AES-256-GCM authenticated encryption (`enc:v1:...`) before being persisted to SQLite.
 
 * **TypeScript Wrapper**: `tauriService.createClient(input: CreateClientInput): Promise<ClientItem>`
 * **Arguments**:
   * `input.name` (`string`, required)
   * `input.company_name` (`string`, optional)
-  * `input.email` (`string`, optional)
-  * `input.phone` (`string`, optional)
-  * `input.contact_handle` (`string`, optional)
-  * `input.address` (`string`, optional)
-  * `input.notes` (`string`, optional)
+  * `input.email` (`string`, optional - encrypted at rest)
+  * `input.phone` (`string`, optional - encrypted at rest)
+  * `input.contact_handle` (`string`, optional - encrypted at rest)
+  * `input.address` (`string`, optional - encrypted at rest)
+  * `input.notes` (`string`, optional - encrypted at rest)
 * **Returns**: `ClientItem`
 
 ---
 
 ### `update_client`
-Updates an existing client profile.
+Updates an existing client profile, re-encrypting modified sensitive contact fields.
 
 * **TypeScript Wrapper**: `tauriService.updateClient(input: UpdateClientInput): Promise<boolean>`
 * **Arguments**:
@@ -361,22 +362,29 @@ Performs unified querying across clients, commissions, invoices, and payments.
 ## 13. Backup & Recovery Commands
 
 ### `create_backup`
-Checkpoints SQLite's WAL journal to disk and clones the database file to `backups/FreelanceDesk_Backup_{TIMESTAMP}.db`.
+Creates either an encrypted portable backup archive (`.fdesk`) or an unencrypted local SQLite snapshot (`.db`).
 
-* **TypeScript Wrapper**: `tauriService.createBackup(): Promise<string>`
-* **Arguments**: None
-* **Returns**: `string` (Absolute path of the created backup file)
+* **TypeScript Wrapper**: `tauriService.createBackup(passphrase?: string): Promise<string>`
+* **Arguments**:
+  * `passphrase` (`string`, optional): When provided, derives a 256-bit key via Argon2id, scrubs the local DPAPI key, and seals the entire database snapshot with AES-256-GCM into a `.fdesk` file. When omitted, performs an atomic SQLite Online Backup to a `.db` file.
+* **Returns**: `string` (Absolute path of the created `.fdesk` or `.db` backup file)
 
 ---
 
 ### `restore_backup`
-Restores the database from a backup file with pre-flight integrity verification and safety backup generation.
+Restores the database from an `.fdesk` or `.db` backup file with pre-flight integrity verification, schema validation, safety backup generation, and automatic DPAPI re-keying.
 
-* **TypeScript Wrapper**: `tauriService.restoreBackup(backupFilePath: string): Promise<string>`
+* **TypeScript Wrapper**: `tauriService.restoreBackup(backupFilePath: string, passphrase?: string): Promise<string>`
 * **Arguments**:
-  * `backupFilePath`: `string` (Absolute path to backup `.db` file)
+  * `backupFilePath` (`string`, required): Absolute path to `.fdesk` or `.db` backup file.
+  * `passphrase` (`string`, optional): Required if restoring an encrypted `.fdesk` file.
 * **Returns**: `string` (Confirmation message including safety backup location)
+* **Re-Keying Behavior**:
+  * Upon successful restoration, `migrate_unencrypted_clients` immediately seals all client fields (`email`, `phone`, `contact_handle`, `address`, `notes`) using the active workstation's native Windows DPAPI key.
 * **Error Cases**:
   * File does not exist.
+  * Missing or incorrect passphrase for `.fdesk` archive.
   * `PRAGMA integrity_check` fails on the target file.
+  * Unsupported or corrupted schema version.
   * File I/O failure.
+

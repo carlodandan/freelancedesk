@@ -173,18 +173,21 @@ erDiagram
 ## 3. Table Specifications
 
 ### 3.1 `clients`
-Represents individual customers, creative patrons, or businesses.
+Represents individual customers, creative patrons, or businesses. 
+
+> [!NOTE]
+> **At-Rest Field Encryption**: Sensitive fields (`email`, `phone`, `contact_handle`, `address`, `notes`) are encrypted with **AES-256-GCM** using the host workstation's Windows DPAPI vault key. Values are persisted as `enc:v1:<base64(12B nonce + ciphertext + 16B auth tag)>`. Plaintext values from legacy databases pass through transparently and are automatically migrated and sealed upon application startup.
 
 | Column | Type | Constraints | Description |
 |---|---|---|---|
 | `id` | `TEXT` | `PRIMARY KEY` | Unique UUID v4 |
-| `name` | `TEXT` | `NOT NULL` | Client's full name |
+| `name` | `TEXT` | `NOT NULL` | Client's full name (Plaintext for fast relational joins) |
 | `company_name` | `TEXT` | Nullable | Organization or studio name |
-| `email` | `TEXT` | Nullable | Contact email |
-| `phone` | `TEXT` | Nullable | Contact phone number |
-| `contact_handle` | `TEXT` | Nullable | Discord tag, Twitter handle, Telegram username |
-| `address` | `TEXT` | Nullable | Billing address |
-| `notes` | `TEXT` | Nullable | Freelancer notes on client preferences |
+| `email` | `TEXT` | Nullable | Contact email (**AES-256-GCM encrypted** at rest) |
+| `phone` | `TEXT` | Nullable | Contact phone number (**AES-256-GCM encrypted** at rest) |
+| `contact_handle` | `TEXT` | Nullable | Discord tag, Twitter handle (**AES-256-GCM encrypted** at rest) |
+| `address` | `TEXT` | Nullable | Billing address (**AES-256-GCM encrypted** at rest) |
+| `notes` | `TEXT` | Nullable | Freelancer notes (**AES-256-GCM encrypted** at rest) |
 | `status` | `TEXT` | `NOT NULL DEFAULT 'active'` | `'active'`, `'inactive'`, `'archived'` |
 | `created_at` | `TEXT` | `NOT NULL DEFAULT (datetime('now'))` | Timestamp |
 | `updated_at` | `TEXT` | `NOT NULL DEFAULT (datetime('now'))` | Timestamp |
@@ -278,7 +281,9 @@ Business deductible tracking.
 
 * **`attachments`**: Stores file metadata, mime type, byte size, and sandbox file paths tied to entities.
 * **`activity_log`**: Append-only log of significant events (entity creation, payment receipt, status progression).
-* **`settings`**: Key-value pair store for user configuration.
+* **`settings`**: Key-value pair store for user configuration and local security state:
+  * Profile identity, currency preferences, invoice prefixes, deposit rules, and active UI theme.
+  * `local_vault_key`: Contains the 256-bit AES vault master key, encrypted via Windows DPAPI (`CryptProtectData`) and stored as a Base64-encoded string. Unprotected transparently on application startup.
 * **`schema_migrations`**: Linear migration registry tracking applied database version scripts.
 
 ---

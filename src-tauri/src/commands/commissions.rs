@@ -4,6 +4,7 @@ use rusqlite::params;
 use tauri::State;
 use uuid::Uuid;
 
+/// Lists commissions, optionally filtered by client or project, with their line items.
 #[tauri::command]
 pub fn get_commissions(
     state: State<'_, AppState>,
@@ -60,18 +61,21 @@ pub fn get_commissions(
         })
         .map_err(|e| e.to_string())?;
 
-    let mut commissions = Vec::new();
-    for comm in rows.flatten() {
-        commissions.push(comm);
-    }
+    let mut commissions: Vec<CommissionItem> = rows
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
 
     // Attach line items for each commission
     for comm in &mut commissions {
-        if let Ok(mut item_stmt) = conn.prepare(
-            "SELECT id, description, quantity, unit_price_cents, total_price_cents, is_percentage, percentage_value
-             FROM commission_items WHERE commission_id = ?1 ORDER BY sort_order ASC",
-        ) {
-            if let Ok(item_rows) = item_stmt.query_map(params![comm.id], |r| {
+        let mut item_stmt = conn
+            .prepare(
+                "SELECT id, description, quantity, unit_price_cents, total_price_cents, is_percentage, percentage_value
+                 FROM commission_items WHERE commission_id = ?1 ORDER BY sort_order ASC",
+            )
+            .map_err(|e| e.to_string())?;
+
+        let item_rows = item_stmt
+            .query_map(params![comm.id], |r| {
                 let is_pct_int: i32 = r.get(5)?;
                 Ok(CommissionLineItem {
                     id: r.get(0)?,
@@ -82,15 +86,18 @@ pub fn get_commissions(
                     is_percentage: is_pct_int == 1,
                     percentage_value: r.get(6)?,
                 })
-            }) {
-                comm.items = item_rows.flatten().collect();
-            }
-        }
+            })
+            .map_err(|e| e.to_string())?;
+
+        comm.items = item_rows
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
     }
 
     Ok(commissions)
 }
 
+/// Creates a commission and its line items in a single transaction.
 #[tauri::command]
 pub fn create_commission(
     state: State<'_, AppState>,
@@ -231,6 +238,7 @@ pub fn create_commission(
     })
 }
 
+/// Changes a commission's status and maintains its completion date.
 #[tauri::command]
 pub fn update_commission_status(
     state: State<'_, AppState>,
@@ -239,17 +247,17 @@ pub fn update_commission_status(
 ) -> Result<bool, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;
 
-    let is_completed = status == "completed";
-    let completion_date_sql = if is_completed { "date('now')" } else { "NULL" };
-
-    let sql = format!(
+    let sql = if status == "completed" {
         "UPDATE commissions
-         SET status = ?1, completion_date = {}, updated_at = datetime('now')
-         WHERE id = ?2",
-        completion_date_sql
-    );
+         SET status = ?1, completion_date = COALESCE(completion_date, date('now')), updated_at = datetime('now')
+         WHERE id = ?2"
+    } else {
+        "UPDATE commissions
+         SET status = ?1, updated_at = datetime('now')
+         WHERE id = ?2"
+    };
 
-    conn.execute(&sql, params![status, id])
+    conn.execute(sql, params![status, id])
         .map_err(|e| e.to_string())?;
 
     let act_id = Uuid::new_v4().to_string();
@@ -262,6 +270,7 @@ pub fn update_commission_status(
     Ok(true)
 }
 
+/// Deletes an unpaid commission or cancels one with an existing payment trail.
 #[tauri::command]
 pub fn delete_commission(state: State<'_, AppState>, id: String) -> Result<bool, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;

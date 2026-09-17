@@ -5,6 +5,7 @@ use std::fs;
 use tauri::State;
 use uuid::Uuid;
 
+/// Ensures attachments are associated only with supported ledger entities.
 fn validate_entity_type(entity_type: &str) -> Result<(), String> {
     match entity_type {
         "client" | "project" | "commission" | "expense" | "invoice" => Ok(()),
@@ -15,6 +16,7 @@ fn validate_entity_type(entity_type: &str) -> Result<(), String> {
     }
 }
 
+/// Lists the attachments associated with a specific ledger entity.
 #[tauri::command]
 pub fn get_attachments(
     state: State<'_, AppState>,
@@ -56,6 +58,7 @@ pub fn get_attachments(
     Ok(attachments)
 }
 
+/// Decodes and stores an attachment, then records its metadata in the database.
 #[tauri::command]
 pub fn add_attachment(
     state: State<'_, AppState>,
@@ -136,6 +139,7 @@ pub fn add_attachment(
     })
 }
 
+/// Removes an attachment's stored file and database record.
 #[tauri::command]
 pub fn delete_attachment(state: State<'_, AppState>, id: String) -> Result<bool, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;
@@ -162,36 +166,13 @@ pub fn delete_attachment(state: State<'_, AppState>, id: String) -> Result<bool,
     Ok(true)
 }
 
+/// Decodes standard base64 text while tolerating whitespace and padding.
 fn base64_decode(input: &str) -> Result<Vec<u8>, String> {
-    // Simple custom base64 decoder to avoid requiring an extra crate
-    let table = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut clean = Vec::new();
-    for b in input.bytes() {
-        if b != b'\r' && b != b'\n' && b != b' ' {
-            clean.push(b);
-        }
-    }
+    use base64::engine::general_purpose::STANDARD;
+    use base64::Engine;
 
-    let mut out = Vec::new();
-    let mut buf: u32 = 0;
-    let mut bits = 0;
-
-    for &b in &clean {
-        if b == b'=' {
-            break;
-        }
-        let val = table
-            .iter()
-            .position(|&x| x == b)
-            .ok_or_else(|| "Invalid base64 character".to_string())? as u32;
-        buf = (buf << 6) | val;
-        bits += 6;
-        if bits >= 8 {
-            bits -= 8;
-            out.push((buf >> bits) as u8);
-            buf &= (1 << bits) - 1;
-        }
-    }
-
-    Ok(out)
+    let clean: String = input.chars().filter(|c| !c.is_whitespace()).collect();
+    STANDARD
+        .decode(&clean)
+        .map_err(|e| format!("Invalid base64 data: {}", e))
 }

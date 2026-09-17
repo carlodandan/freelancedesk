@@ -20,25 +20,51 @@ pub fn global_search(
     let pattern = format!("%{}%", clean_query);
     let mut results = Vec::new();
 
-    // 1. Search Clients
+    // 1. Search Clients (decrypting sensitive email and phone in memory)
+    let query_lower = clean_query.to_lowercase();
     if let Ok(mut stmt) = conn.prepare(
-        "SELECT id, name, COALESCE(company_name, email, phone, 'Client') as sub, status
-         FROM clients
-         WHERE name LIKE ?1 OR company_name LIKE ?1 OR email LIKE ?1 OR phone LIKE ?1
-         LIMIT 5",
+        "SELECT id, name, company_name, email, phone, status FROM clients",
     ) {
-        if let Ok(rows) = stmt.query_map(params![pattern], |r| {
-            Ok(SearchResultEntry {
-                id: r.get(0)?,
-                entity_type: "client".to_string(),
-                title: r.get(1)?,
-                subtitle: r.get(2)?,
-                status: Some(r.get(3)?),
-                amount_cents: None,
-            })
+        if let Ok(rows) = stmt.query_map([], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, Option<String>>(2)?,
+                r.get::<_, Option<String>>(3)?,
+                r.get::<_, Option<String>>(4)?,
+                r.get::<_, String>(5)?,
+            ))
         }) {
-            for item in rows.flatten() {
-                results.push(item);
+            let mut client_matches = 0;
+            for row in rows.flatten() {
+                if client_matches >= 5 {
+                    break;
+                }
+                let (id, name, company_name, raw_email, raw_phone, status) = row;
+                let dec_email = raw_email.map(|s| crate::security::crypto::decrypt_field(&s, &state.vault_key));
+                let dec_phone = raw_phone.map(|s| crate::security::crypto::decrypt_field(&s, &state.vault_key));
+
+                let name_match = name.to_lowercase().contains(&query_lower);
+                let company_match = company_name.as_ref().map(|c| c.to_lowercase().contains(&query_lower)).unwrap_or(false);
+                let email_match = dec_email.as_ref().map(|e| e.to_lowercase().contains(&query_lower)).unwrap_or(false);
+                let phone_match = dec_phone.as_ref().map(|p| p.to_lowercase().contains(&query_lower)).unwrap_or(false);
+
+                if name_match || company_match || email_match || phone_match {
+                    let subtitle = company_name
+                        .or(dec_email)
+                        .or(dec_phone)
+                        .unwrap_or_else(|| "Client".to_string());
+
+                    results.push(SearchResultEntry {
+                        id,
+                        entity_type: "client".to_string(),
+                        title: name,
+                        subtitle,
+                        status: Some(status),
+                        amount_cents: None,
+                    });
+                    client_matches += 1;
+                }
             }
         }
     }
