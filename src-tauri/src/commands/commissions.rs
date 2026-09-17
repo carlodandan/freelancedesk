@@ -4,6 +4,7 @@ use rusqlite::params;
 use tauri::State;
 use uuid::Uuid;
 
+/// Lists commissions, optionally filtered by client or project, with their line items.
 #[tauri::command]
 pub fn get_commissions(
     state: State<'_, AppState>,
@@ -91,6 +92,7 @@ pub fn get_commissions(
     Ok(commissions)
 }
 
+/// Creates a commission and its line items in a single transaction.
 #[tauri::command]
 pub fn create_commission(
     state: State<'_, AppState>,
@@ -231,6 +233,7 @@ pub fn create_commission(
     })
 }
 
+/// Changes a commission's status and maintains its completion date.
 #[tauri::command]
 pub fn update_commission_status(
     state: State<'_, AppState>,
@@ -262,6 +265,7 @@ pub fn update_commission_status(
     Ok(true)
 }
 
+/// Deletes an unpaid commission or cancels one with an existing payment trail.
 #[tauri::command]
 pub fn delete_commission(state: State<'_, AppState>, id: String) -> Result<bool, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;

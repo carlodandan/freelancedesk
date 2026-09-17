@@ -4,6 +4,7 @@ use rusqlite::params;
 use tauri::State;
 use uuid::Uuid;
 
+/// Lists clients with decrypted contact details and aggregate billing totals.
 #[tauri::command]
 pub fn get_clients(state: State<'_, AppState>) -> Result<Vec<ClientItem>, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;
@@ -64,6 +65,7 @@ pub fn get_clients(state: State<'_, AppState>) -> Result<Vec<ClientItem>, String
     Ok(clients)
 }
 
+/// Creates a client while encrypting sensitive contact fields at rest.
 #[tauri::command]
 pub fn create_client(
     state: State<'_, AppState>,
@@ -124,6 +126,7 @@ pub fn create_client(
     })
 }
 
+/// Updates a client and re-encrypts all sensitive contact fields.
 #[tauri::command]
 pub fn update_client(state: State<'_, AppState>, input: UpdateClientInput) -> Result<bool, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;
@@ -163,6 +166,7 @@ pub fn update_client(state: State<'_, AppState>, input: UpdateClientInput) -> Re
     Ok(true)
 }
 
+/// Deletes an unused client or archives one that has related ledger records.
 #[tauri::command]
 pub fn delete_client(state: State<'_, AppState>, id: String) -> Result<bool, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;

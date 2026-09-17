@@ -190,6 +190,7 @@ const REQUIRED_SCHEMA: &[(&str, &[&str])] = &[
     ),
 ];
 
+/// Verifies that a backup contains the supported schema version and required columns.
 fn validate_backup_schema(conn: &Connection) -> Result<(), String> {
     let has_migrations_table: bool = conn
         .query_row(
@@ -259,6 +260,7 @@ fn validate_backup_schema(conn: &Connection) -> Result<(), String> {
     Ok(())
 }
 
+/// Creates either a local SQLite backup or a passphrase-protected portable backup.
 #[tauri::command]
 pub fn create_backup(
     state: State<'_, AppState>,
@@ -322,6 +324,7 @@ pub fn create_backup(
     }
 }
 
+/// Restores a validated SQLite snapshot after preserving the current database.
 fn restore_from_sqlite_path(
     state: &AppState,
     source_path: &std::path::Path,
@@ -381,6 +384,7 @@ fn restore_from_sqlite_path(
     ))
 }
 
+/// Restores a plain or passphrase-protected backup into the active database.
 #[tauri::command]
 pub fn restore_backup(
     state: State<'_, AppState>,
@@ -485,4 +489,3 @@ mod tests {
         assert!(err.is_err());
     }
 }
-

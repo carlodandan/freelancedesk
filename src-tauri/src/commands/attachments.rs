@@ -5,6 +5,7 @@ use std::fs;
 use tauri::State;
 use uuid::Uuid;
 
+/// Ensures attachments are associated only with supported ledger entities.
 fn validate_entity_type(entity_type: &str) -> Result<(), String> {
     match entity_type {
         "client" | "project" | "commission" | "expense" | "invoice" => Ok(()),
@@ -15,6 +16,7 @@ fn validate_entity_type(entity_type: &str) -> Result<(), String> {
     }
 }
 
+/// Lists the attachments associated with a specific ledger entity.
 #[tauri::command]
 pub fn get_attachments(
     state: State<'_, AppState>,
@@ -56,6 +58,7 @@ pub fn get_attachments(
     Ok(attachments)
 }
 
+/// Decodes and stores an attachment, then records its metadata in the database.
 #[tauri::command]
 pub fn add_attachment(
     state: State<'_, AppState>,
@@ -136,6 +139,7 @@ pub fn add_attachment(
     })
 }
 
+/// Removes an attachment's stored file and database record.
 #[tauri::command]
 pub fn delete_attachment(state: State<'_, AppState>, id: String) -> Result<bool, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;
@@ -162,6 +166,7 @@ pub fn delete_attachment(state: State<'_, AppState>, id: String) -> Result<bool,
     Ok(true)
 }
 
+/// Decodes standard base64 text while tolerating whitespace and padding.
 fn base64_decode(input: &str) -> Result<Vec<u8>, String> {
     // Simple custom base64 decoder to avoid requiring an extra crate
     let table = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
