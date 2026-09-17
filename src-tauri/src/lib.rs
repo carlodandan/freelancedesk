@@ -48,9 +48,14 @@ pub fn run() {
             let vault_key = security::get_or_create_vault_key(&db_mutex)
                 .map_err(|e| format!("Failed to init vault key: {}", e))?;
 
-            // Migrate any legacy unencrypted client fields to encrypted format
-            if let Ok(mut c) = db_mutex.lock() {
-                let _ = security::crypto::migrate_unencrypted_clients(&mut c, &vault_key);
+            // Migrate any legacy unencrypted client fields to encrypted format.
+            // Startup must stop if the database cannot be migrated safely.
+            {
+                let mut conn = db_mutex
+                    .lock()
+                    .map_err(|e| format!("Failed to lock database for client migration: {}", e))?;
+                security::crypto::migrate_unencrypted_clients(&mut conn, &vault_key)
+                    .map_err(|e| format!("Failed to migrate client encryption: {}", e))?;
             }
 
             app.manage(AppState {
