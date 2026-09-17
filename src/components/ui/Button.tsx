@@ -15,6 +15,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       icon,
       className = "",
       disabled,
+      type = "button",
       ...props
     },
     ref,

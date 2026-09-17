@@ -173,6 +173,10 @@ export function generateInvoicePdf(
   }
 
   // Summary Totals Section
+  if (y > 220) {
+    doc.addPage();
+    y = 25;
+  }
   y += 6;
   const totalsLeft = 115;
   const amountRight = 186;
@@ -247,6 +251,10 @@ export function generateInvoicePdf(
 
   // Notes & Payment Instructions
   if (invoice.payment_instructions || settings.default_payment_terms) {
+    if (y > 240) {
+      doc.addPage();
+      y = 25;
+    }
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
     doc.setTextColor(140, 134, 122);
@@ -266,6 +274,10 @@ export function generateInvoicePdf(
   }
 
   if (invoice.notes) {
+    if (y > 240) {
+      doc.addPage();
+      y = 25;
+    }
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
     doc.setTextColor(140, 134, 122);

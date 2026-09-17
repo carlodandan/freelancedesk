@@ -54,18 +54,21 @@ pub fn get_invoices(
         })
         .map_err(|e| e.to_string())?;
 
-    let mut invoices = Vec::new();
-    for inv in rows.flatten() {
-        invoices.push(inv);
-    }
+    let mut invoices: Vec<InvoiceItem> = rows
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
 
     // Attach items
     for inv in &mut invoices {
-        if let Ok(mut item_stmt) = conn.prepare(
-            "SELECT id, commission_id, description, quantity, unit_price_cents, total_price_cents, sort_order
-             FROM invoice_items WHERE invoice_id = ?1 ORDER BY sort_order ASC",
-        ) {
-            if let Ok(item_rows) = item_stmt.query_map(params![inv.id], |r| {
+        let mut item_stmt = conn
+            .prepare(
+                "SELECT id, commission_id, description, quantity, unit_price_cents, total_price_cents, sort_order
+                 FROM invoice_items WHERE invoice_id = ?1 ORDER BY sort_order ASC",
+            )
+            .map_err(|e| e.to_string())?;
+
+        let item_rows = item_stmt
+            .query_map(params![inv.id], |r| {
                 Ok(InvoiceLineItem {
                     id: r.get(0)?,
                     commission_id: r.get(1)?,
@@ -75,10 +78,12 @@ pub fn get_invoices(
                     total_price_cents: r.get(5)?,
                     sort_order: r.get(6)?,
                 })
-            }) {
-                inv.items = item_rows.flatten().collect();
-            }
-        }
+            })
+            .map_err(|e| e.to_string())?;
+
+        inv.items = item_rows
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
     }
 
     Ok(invoices)

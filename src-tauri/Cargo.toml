@@ -1,6 +1,6 @@
 [package]
 name = "freelancedesk"
-version = "0.0.1"
+version = "0.0.2"
 description = "A desktop (Windows) application for freelancer that lets you manage and track all your current commissions."
 authors = ["you"]
 edition = "2021"

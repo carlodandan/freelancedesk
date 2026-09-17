@@ -112,12 +112,12 @@ mod sys {
 
 #[cfg(not(target_os = "windows"))]
 mod sys {
-    pub fn protect_bytes(data: &[u8]) -> Result<Vec<u8>, String> {
-        Ok(data.to_vec())
+    pub fn protect_bytes(_data: &[u8]) -> Result<Vec<u8>, String> {
+        Err("Windows DPAPI is only supported on Windows".to_string())
     }
 
-    pub fn unprotect_bytes(data: &[u8]) -> Result<Vec<u8>, String> {
-        Ok(data.to_vec())
+    pub fn unprotect_bytes(_data: &[u8]) -> Result<Vec<u8>, String> {
+        Err("Windows DPAPI is only supported on Windows".to_string())
     }
 }
 
@@ -134,6 +134,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn roundtrip_dpapi_protection() {
         let original = b"freelancedesk_super_secret_master_key_123456";
         let protected = protect(original).expect("Protect should succeed");
@@ -141,5 +142,12 @@ mod tests {
 
         let restored = unprotect(&protected).expect("Unprotect should succeed");
         assert_eq!(restored, original);
+    }
+
+    #[test]
+    #[cfg(not(target_os = "windows"))]
+    fn non_windows_explicitly_errors() {
+        assert!(protect(b"test").is_err());
+        assert!(unprotect(b"test").is_err());
     }
 }

@@ -70,10 +70,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       }
       if (backupPassphrase.length < 8) {
         showToast({
-          type: "warning",
-          message:
-            "Passphrase should be at least 8 characters for stronger security.",
+          type: "danger",
+          message: "Passphrase must be at least 8 characters.",
         });
+        return;
       }
     }
 
@@ -132,7 +132,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     try {
       const res = await tauriService.restoreBackup(
         trimmedPath,
-        restorePassphrase.trim() || undefined,
+        restorePassphrase.length > 0 ? restorePassphrase : undefined,
       );
       showToast({
         type: "success",
@@ -652,7 +652,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
         {activeTab === "updates" && (
           <div className="space-y-5">
-            <UpdateCheck currentVersion={appInfo?.version ?? "0.0.1"} />
+            <UpdateCheck currentVersion={appInfo?.version ?? "0.0.2"} />
           </div>
         )}
       </form>

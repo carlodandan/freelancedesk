@@ -103,7 +103,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
   };
 
   const resetForm = () => {
-    setClientId("");
+    setClientId(clients[0]?.id || "");
     setIssueDate(getTodayStr());
     setDueDate("");
     setDiscountInput("");

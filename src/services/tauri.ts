@@ -54,7 +54,7 @@ export const tauriService = {
     return await invoke<boolean>("update_client", { input });
   },
 
-  async deleteClient(id: String): Promise<boolean> {
+  async deleteClient(id: string): Promise<boolean> {
     return await invoke<boolean>("delete_client", { id });
   },
 

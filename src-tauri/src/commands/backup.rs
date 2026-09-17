@@ -3,8 +3,22 @@ use rusqlite::backup::Backup;
 use rusqlite::Connection;
 use std::collections::HashSet;
 use std::fs;
+use std::path::PathBuf;
 use std::time::Duration;
 use tauri::State;
+
+struct TempFileGuard(PathBuf);
+
+impl Drop for TempFileGuard {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.0);
+    }
+}
+
+fn generate_unique_timestamp() -> String {
+    let nonce: u32 = rand::random();
+    format!("{}_{:08x}", chrono::Utc::now().format("%Y%m%d_%H%M%S"), nonce)
+}
 
 const SUPPORTED_SCHEMA_VERSION: i64 = 1;
 
@@ -269,12 +283,14 @@ pub fn create_backup(
     let backups_dir = state.app_data_dir.join("backups");
     fs::create_dir_all(&backups_dir).map_err(|e| e.to_string())?;
 
-    let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S").to_string();
-    let clean_passphrase = passphrase.as_deref().map(str::trim).filter(|s| !s.is_empty());
+    let timestamp = generate_unique_timestamp();
+    let clean_passphrase = passphrase.as_deref().filter(|s| !s.trim().is_empty());
 
     if let Some(pass) = clean_passphrase {
         // Encrypted portable backup (.fdesk)
-        let temp_path = backups_dir.join(format!("temp_export_{}.db", timestamp));
+        // Store temporary database snapshot in system temp dir with RAII cleanup
+        let temp_path = std::env::temp_dir().join(format!("freelancedesk_export_{}.db", timestamp));
+        let _guard = TempFileGuard(temp_path.clone());
 
         {
             let conn = state.db.lock().map_err(|e| e.to_string())?;
@@ -297,7 +313,6 @@ pub fn create_backup(
         }
 
         let raw_bytes = fs::read(&temp_path).map_err(|e| format!("Failed to read temporary snapshot: {}", e))?;
-        let _ = fs::remove_file(&temp_path);
 
         let encrypted_bytes = crate::security::crypto::encrypt_backup_payload(&raw_bytes, pass)?;
         let backup_filename = format!("FreelanceDesk_Backup_{}.fdesk", timestamp);
@@ -344,7 +359,7 @@ fn restore_from_sqlite_path(
 
     let backups_dir = state.app_data_dir.join("backups");
     fs::create_dir_all(&backups_dir).map_err(|e| e.to_string())?;
-    let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S").to_string();
+    let timestamp = generate_unique_timestamp();
     let safety_path = backups_dir.join(format!("Safety_Backup_Before_Restore_{}.db", timestamp));
 
     let mut conn = state.db.lock().map_err(|e| e.to_string())?;
@@ -367,16 +382,31 @@ fn restore_from_sqlite_path(
     }
 
     // Ensure local vault key is configured for this machine and seal clients
-    crate::security::save_vault_key(&conn, &state.vault_key)?;
-    crate::security::crypto::migrate_unencrypted_clients(&mut *conn, &state.vault_key)?;
+    // If post-restore operations fail, roll back from safety backup
+    let post_restore_result = (|| -> Result<(), String> {
+        crate::security::save_vault_key(&conn, &state.vault_key)?;
+        crate::security::crypto::migrate_unencrypted_clients(&mut *conn, &state.vault_key)?;
+        conn.execute_batch(
+            "PRAGMA foreign_keys = ON;
+             PRAGMA journal_mode = WAL;
+             PRAGMA synchronous = NORMAL;
+             PRAGMA wal_checkpoint(TRUNCATE);",
+        )
+        .map_err(|e| e.to_string())?;
+        Ok(())
+    })();
 
-    conn.execute_batch(
-        "PRAGMA foreign_keys = ON;
-         PRAGMA journal_mode = WAL;
-         PRAGMA synchronous = NORMAL;
-         PRAGMA wal_checkpoint(TRUNCATE);",
-    )
-    .map_err(|e| e.to_string())?;
+    if let Err(err) = post_restore_result {
+        if let Ok(safety_conn) = Connection::open(&safety_path) {
+            if let Ok(rollback) = Backup::new(&safety_conn, &mut *conn) {
+                let _ = rollback.run_to_completion(100, Duration::from_millis(10), None);
+            }
+        }
+        return Err(format!(
+            "Restore post-processing failed (rolled back to original database): {}",
+            err
+        ));
+    }
 
     Ok(format!(
         "Database restored successfully. A safety backup was saved at: {}",
@@ -402,24 +432,21 @@ pub fn restore_backup(
         || source_path.extension().map_or(false, |ext| ext == "fdesk");
 
     if is_encrypted {
-        let pass = match passphrase.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        let pass = match passphrase.as_deref().filter(|s| !s.trim().is_empty()) {
             Some(p) => p,
             None => return Err("A passphrase is required to decrypt this protected backup (.fdesk).".to_string()),
         };
 
         let decrypted_bytes = crate::security::crypto::decrypt_backup_payload(&file_bytes, pass)?;
 
-        let backups_dir = state.app_data_dir.join("backups");
-        fs::create_dir_all(&backups_dir).map_err(|e| e.to_string())?;
-        let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S").to_string();
-        let temp_restore_path = backups_dir.join(format!("temp_restore_{}.db", timestamp));
+        let timestamp = generate_unique_timestamp();
+        let temp_restore_path = std::env::temp_dir().join(format!("freelancedesk_restore_{}.db", timestamp));
+        let _guard = TempFileGuard(temp_restore_path.clone());
 
         fs::write(&temp_restore_path, decrypted_bytes)
             .map_err(|e| format!("Failed to write decrypted database snapshot: {}", e))?;
 
-        let res = restore_from_sqlite_path(&state, &temp_restore_path);
-        let _ = fs::remove_file(&temp_restore_path);
-        res
+        restore_from_sqlite_path(&state, &temp_restore_path)
     } else {
         restore_from_sqlite_path(&state, source_path)
     }

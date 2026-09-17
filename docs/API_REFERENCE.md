@@ -49,7 +49,8 @@ Retrieves user preferences, profile details, currency configurations, and ledger
   "default_payment_terms": "Payment due within 15 days.",
   "theme": "paper",
   "auto_backup_enabled": false,
-  "backup_frequency": "weekly"
+  "backup_frequency": "weekly",
+  "backup_location": null
 }
 ```
 
@@ -75,7 +76,7 @@ Returns native desktop application metadata and storage path locations.
 ```json
 {
   "name": "FreelanceDesk",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "data_dir": "C:\\Users\\Administrator\\AppData\\Roaming\\com.carlodandan.freelancedesk",
   "database_path": "C:\\Users\\Administrator\\AppData\\Roaming\\com.carlodandan.freelancedesk\\database\\freelance.db"
 }

@@ -199,7 +199,7 @@ pub fn create_payment(
             [],
             |r| r.get(0),
         )
-        .map_err(|e| e.to_string())?;
+        .unwrap_or_else(|_| "$".to_string());
 
     let act_id = Uuid::new_v4().to_string();
     let desc = format!(

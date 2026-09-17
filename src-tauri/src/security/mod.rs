@@ -25,36 +25,43 @@ pub fn get_or_create_vault_key(db: &Mutex<Connection>) -> Result<[u8; 32], Strin
     let conn = db.lock().map_err(|e| e.to_string())?;
 
     // Check if key already exists in settings
-    let existing_blob: Option<Vec<u8>> = conn
-        .query_row(
-            "SELECT value FROM settings WHERE key = ?1",
-            [VAULT_SETTING_KEY],
-            |row| {
-                let s: String = row.get(0)?;
-                match base64::engine::general_purpose::STANDARD.decode(s) {
-                    Ok(bytes) => Ok(bytes),
-                    Err(_) => Ok(Vec::new()),
-                }
-            },
-        )
-        .ok();
+    let row_result = conn.query_row(
+        "SELECT value FROM settings WHERE key = ?1",
+        [VAULT_SETTING_KEY],
+        |row| row.get::<_, String>(0),
+    );
 
-    if let Some(blob) = existing_blob {
-        if !blob.is_empty() {
-            if let Ok(unprotected) = dpapi::unprotect(&blob) {
-                if unprotected.len() == 32 {
-                    let mut key = [0u8; 32];
-                    key.copy_from_slice(&unprotected);
-                    return Ok(key);
-                }
+    match row_result {
+        Ok(base64_val) => {
+            let blob = base64::engine::general_purpose::STANDARD
+                .decode(base64_val.trim())
+                .map_err(|e| format!("Corrupted vault key in settings: {}", e))?;
+
+            if blob.is_empty() {
+                return Err("Stored vault key is empty".to_string());
             }
+
+            let unprotected = dpapi::unprotect(&blob)
+                .map_err(|e| format!("Failed to unlock local vault key via Windows DPAPI: {}", e))?;
+
+            if unprotected.len() != 32 {
+                return Err(format!(
+                    "Invalid vault key length: expected 32 bytes, got {}",
+                    unprotected.len()
+                ));
+            }
+
+            let mut key = [0u8; 32];
+            key.copy_from_slice(&unprotected);
+            Ok(key)
         }
+        Err(rusqlite::Error::QueryReturnedNoRows) => {
+            // Generate new master key only on fresh database
+            let key = crypto::generate_master_key();
+            save_vault_key(&conn, &key)?;
+            Ok(key)
+        }
+        Err(e) => Err(format!("Failed to query settings table for vault key: {}", e)),
     }
-
-    // Generate new master key
-    let key = crypto::generate_master_key();
-    save_vault_key(&conn, &key)?;
-
-    Ok(key)
 }
 

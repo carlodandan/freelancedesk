@@ -44,7 +44,7 @@ Rather than burdening solo creators with bloated corporate CRM complexity, month
 * **True Data Ownership**: Your records live in standard SQLite and local sandboxed folders (`%APPDATA%/com.carlodandan.freelancedesk/`). You can inspect, copy, backup, or restore them anytime.
 * **Portable Disaster Recovery (`.fdesk`)**: Export encrypted portable archives sealed with **Argon2id** and **AES-256-GCM** that are completely safe for cloud storage (Google Drive, OneDrive, Dropbox) or USB migration, with automatic re-keying into host machine DPAPI upon restore.
 * **No Accounts & No Subscriptions**: No sign-up modals, API keys, tracking scripts, or recurring paywalls.
-* **Zero Telemetry**: No tracking beacons, analytics pings, or background network calls.
+* **Zero Telemetry & Private Updates**: No tracking beacons, analytics pings, or user profiling. Outbound network requests are strictly limited to optional, user-controlled update checks against GitHub Releases.
 * **Artisanal "Warm Paper & Bronze" Identity**: Inspired by physical stationery, archival ledgers, and guild bookkeepers. Also includes **Clean Slate** and **Obsidian Dark** themes.
 * **Integer Monetary Safety**: All monetary values are calculated and stored in integer **cents** with integer basis points for taxes, preventing floating-point rounding errors.
 
@@ -248,8 +248,8 @@ This will:
 2. Invoke `cargo build --release` with Link-Time Optimization (`lto = true`), symbol stripping (`strip = true`), and level 3 optimizations.
 3. Bundle the Windows installer and application binary under:
    ```
-   src-tauri/target/release/bundle/msi/FreelanceDesk_0.0.1_x64_en-US.msi
-   src-tauri/target/release/bundle/nsis/FreelanceDesk_0.0.1_x64-setup.exe
+   src-tauri/target/release/bundle/msi/FreelanceDesk_0.0.2_x64_en-US.msi
+   src-tauri/target/release/bundle/nsis/FreelanceDesk_0.0.2_x64-setup.exe
    ```
 
 ---

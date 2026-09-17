@@ -15,30 +15,27 @@ pub fn generate_master_key() -> [u8; 32] {
     key
 }
 
-pub fn encrypt_field(plaintext: &str, key: &[u8; 32]) -> String {
+pub fn encrypt_field(plaintext: &str, key: &[u8; 32]) -> Result<String, String> {
     let trimmed = plaintext.trim();
     if trimmed.is_empty() {
-        return String::new();
+        return Ok(String::new());
     }
 
     let mut nonce_bytes = [0u8; 12];
     rand::thread_rng().fill(&mut nonce_bytes);
     let nonce = Nonce::from_slice(&nonce_bytes);
 
-    let cipher = match Aes256Gcm::new_from_slice(key) {
-        Ok(c) => c,
-        Err(_) => return plaintext.to_string(),
-    };
+    let cipher = Aes256Gcm::new_from_slice(key)
+        .map_err(|e| format!("AES initialization failed: {}", e))?;
 
-    match cipher.encrypt(nonce, trimmed.as_bytes()) {
-        Ok(ciphertext) => {
-            let mut combined = Vec::with_capacity(12 + ciphertext.len());
-            combined.extend_from_slice(&nonce_bytes);
-            combined.extend_from_slice(&ciphertext);
-            format!("{}{}", ENC_PREFIX, BASE64.encode(&combined))
-        }
-        Err(_) => plaintext.to_string(),
-    }
+    let ciphertext = cipher
+        .encrypt(nonce, trimmed.as_bytes())
+        .map_err(|e| format!("AES encryption failed: {}", e))?;
+
+    let mut combined = Vec::with_capacity(12 + ciphertext.len());
+    combined.extend_from_slice(&nonce_bytes);
+    combined.extend_from_slice(&ciphertext);
+    Ok(format!("{}{}", ENC_PREFIX, BASE64.encode(&combined)))
 }
 
 pub fn decrypt_field(stored: &str, key: &[u8; 32]) -> String {
@@ -170,50 +167,45 @@ pub fn migrate_unencrypted_clients(conn: &mut rusqlite::Connection, key: &[u8; 3
     for (id, email, phone, handle, address, notes) in rows {
         let mut needs_update = false;
 
-        let enc_email = email.map(|v| {
-            if !v.starts_with(ENC_PREFIX) && !v.trim().is_empty() {
+        let enc_email = match email {
+            Some(v) if !v.starts_with(ENC_PREFIX) && !v.trim().is_empty() => {
                 needs_update = true;
-                encrypt_field(&v, key)
-            } else {
-                v
+                Some(encrypt_field(&v, key)?)
             }
-        });
+            other => other,
+        };
 
-        let enc_phone = phone.map(|v| {
-            if !v.starts_with(ENC_PREFIX) && !v.trim().is_empty() {
+        let enc_phone = match phone {
+            Some(v) if !v.starts_with(ENC_PREFIX) && !v.trim().is_empty() => {
                 needs_update = true;
-                encrypt_field(&v, key)
-            } else {
-                v
+                Some(encrypt_field(&v, key)?)
             }
-        });
+            other => other,
+        };
 
-        let enc_handle = handle.map(|v| {
-            if !v.starts_with(ENC_PREFIX) && !v.trim().is_empty() {
+        let enc_handle = match handle {
+            Some(v) if !v.starts_with(ENC_PREFIX) && !v.trim().is_empty() => {
                 needs_update = true;
-                encrypt_field(&v, key)
-            } else {
-                v
+                Some(encrypt_field(&v, key)?)
             }
-        });
+            other => other,
+        };
 
-        let enc_address = address.map(|v| {
-            if !v.starts_with(ENC_PREFIX) && !v.trim().is_empty() {
+        let enc_address = match address {
+            Some(v) if !v.starts_with(ENC_PREFIX) && !v.trim().is_empty() => {
                 needs_update = true;
-                encrypt_field(&v, key)
-            } else {
-                v
+                Some(encrypt_field(&v, key)?)
             }
-        });
+            other => other,
+        };
 
-        let enc_notes = notes.map(|v| {
-            if !v.starts_with(ENC_PREFIX) && !v.trim().is_empty() {
+        let enc_notes = match notes {
+            Some(v) if !v.starts_with(ENC_PREFIX) && !v.trim().is_empty() => {
                 needs_update = true;
-                encrypt_field(&v, key)
-            } else {
-                v
+                Some(encrypt_field(&v, key)?)
             }
-        });
+            other => other,
+        };
 
         if needs_update {
             conn.execute(
@@ -278,7 +270,7 @@ mod tests {
     fn roundtrip_field_encryption() {
         let key = generate_master_key();
         let original = "maria.santos@creativestudio.ph";
-        let encrypted = encrypt_field(original, &key);
+        let encrypted = encrypt_field(original, &key).expect("Encryption should succeed");
         assert!(encrypted.starts_with(ENC_PREFIX));
         assert_ne!(encrypted, original);
 

@@ -24,7 +24,10 @@ const CHECKING: UpdaterState = {
 
 export function useUpdater() {
   const [state, setState] = useState<UpdaterState>(CHECKING);
+  const stateRef = useRef(state);
+  stateRef.current = state;
   const found = useRef<Update | null>(null);
+  const checkSeq = useRef(0);
   // Prevents setState after unmount
   const live = useRef(true);
   useEffect(() => {
@@ -41,9 +44,11 @@ export function useUpdater() {
 
   const check = useCallback(
     async (force = false): Promise<UpdaterState> => {
+      const seq = ++checkSeq.current;
       settle(CHECKING);
       try {
         const update = await checkForUpdate(force);
+        if (seq !== checkSeq.current) return stateRef.current;
         found.current = update;
         return settle(
           update
@@ -57,6 +62,7 @@ export function useUpdater() {
             : { ...CHECKING, stage: "current" },
         );
       } catch (error) {
+        if (seq !== checkSeq.current) return stateRef.current;
         found.current = null;
         return settle({
           ...CHECKING,

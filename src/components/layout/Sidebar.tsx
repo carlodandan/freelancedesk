@@ -143,7 +143,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 FreelanceDesk
               </div>
               <div className="text-[11px] text-[#8C867A] mt-1 font-mono tracking-wider">
-                LEDGER v0.0.1
+                LEDGER v0.0.2
               </div>
             </div>
           </div>

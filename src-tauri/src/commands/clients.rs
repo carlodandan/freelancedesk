@@ -57,10 +57,9 @@ pub fn get_clients(state: State<'_, AppState>) -> Result<Vec<ClientItem>, String
         })
         .map_err(|e| e.to_string())?;
 
-    let mut clients = Vec::new();
-    for client in rows.flatten() {
-        clients.push(client);
-    }
+    let clients = rows
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
 
     Ok(clients)
 }
@@ -77,11 +76,26 @@ pub fn create_client(
     let id = Uuid::new_v4().to_string();
     let status = input.status.unwrap_or_else(|| "active".to_string());
 
-    let enc_email = input.email.as_deref().map(|s| crate::security::crypto::encrypt_field(s, key));
-    let enc_phone = input.phone.as_deref().map(|s| crate::security::crypto::encrypt_field(s, key));
-    let enc_handle = input.contact_handle.as_deref().map(|s| crate::security::crypto::encrypt_field(s, key));
-    let enc_address = input.address.as_deref().map(|s| crate::security::crypto::encrypt_field(s, key));
-    let enc_notes = input.notes.as_deref().map(|s| crate::security::crypto::encrypt_field(s, key));
+    let enc_email = match input.email.as_deref() {
+        Some(s) => Some(crate::security::crypto::encrypt_field(s, key)?),
+        None => None,
+    };
+    let enc_phone = match input.phone.as_deref() {
+        Some(s) => Some(crate::security::crypto::encrypt_field(s, key)?),
+        None => None,
+    };
+    let enc_handle = match input.contact_handle.as_deref() {
+        Some(s) => Some(crate::security::crypto::encrypt_field(s, key)?),
+        None => None,
+    };
+    let enc_address = match input.address.as_deref() {
+        Some(s) => Some(crate::security::crypto::encrypt_field(s, key)?),
+        None => None,
+    };
+    let enc_notes = match input.notes.as_deref() {
+        Some(s) => Some(crate::security::crypto::encrypt_field(s, key)?),
+        None => None,
+    };
 
     conn.execute(
         "INSERT INTO clients (id, name, company_name, email, phone, contact_handle, address, notes, status, created_at, updated_at)
@@ -132,11 +146,26 @@ pub fn update_client(state: State<'_, AppState>, input: UpdateClientInput) -> Re
     let conn = state.db.lock().map_err(|e| e.to_string())?;
     let key = &state.vault_key;
 
-    let enc_email = input.email.as_deref().map(|s| crate::security::crypto::encrypt_field(s, key));
-    let enc_phone = input.phone.as_deref().map(|s| crate::security::crypto::encrypt_field(s, key));
-    let enc_handle = input.contact_handle.as_deref().map(|s| crate::security::crypto::encrypt_field(s, key));
-    let enc_address = input.address.as_deref().map(|s| crate::security::crypto::encrypt_field(s, key));
-    let enc_notes = input.notes.as_deref().map(|s| crate::security::crypto::encrypt_field(s, key));
+    let enc_email = match input.email.as_deref() {
+        Some(s) => Some(crate::security::crypto::encrypt_field(s, key)?),
+        None => None,
+    };
+    let enc_phone = match input.phone.as_deref() {
+        Some(s) => Some(crate::security::crypto::encrypt_field(s, key)?),
+        None => None,
+    };
+    let enc_handle = match input.contact_handle.as_deref() {
+        Some(s) => Some(crate::security::crypto::encrypt_field(s, key)?),
+        None => None,
+    };
+    let enc_address = match input.address.as_deref() {
+        Some(s) => Some(crate::security::crypto::encrypt_field(s, key)?),
+        None => None,
+    };
+    let enc_notes = match input.notes.as_deref() {
+        Some(s) => Some(crate::security::crypto::encrypt_field(s, key)?),
+        None => None,
+    };
 
     conn.execute(
         "UPDATE clients
